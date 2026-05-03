@@ -540,8 +540,17 @@
       }
       function climbToClickable(el) {
         var c = el;
-        for (var i = 0; i < 6 && c; i++) {
+        // First pass: prefer real buttons / role=button / explicit onclick.
+        for (var i = 0; i < 8 && c; i++) {
           if (c.tagName === "BUTTON" || c.onclick || (c.getAttribute && c.getAttribute("role") === "button")) return c;
+          c = c.parentElement;
+        }
+        // Second pass: fall back to the nearest ancestor with cursor:pointer (React tile handlers).
+        c = el;
+        for (var j = 0; j < 8 && c; j++) {
+          try {
+            if (c.nodeType === 1 && getComputedStyle(c).cursor === "pointer") return c;
+          } catch (e) {}
           c = c.parentElement;
         }
         return el;
