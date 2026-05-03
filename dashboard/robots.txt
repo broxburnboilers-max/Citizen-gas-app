@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /app
-Disallow: /app/
-
-Sitemap: https://gas-safety-app.com/sitemap.xml
