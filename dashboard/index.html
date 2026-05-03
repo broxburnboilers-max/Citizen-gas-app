@@ -163,6 +163,56 @@
         fill: #C8501C !important;
         stroke: #C8501C !important;
       }
+
+      /* === Certificate / PDF Preview escape hatch ===
+         When the user is viewing a Gas Safety Certificate (the printable document),
+         we force the certificate body back to its original white sheet + black text
+         look, regardless of any earlier dark-theme overrides. A tiny JS observer
+         below adds `body.cg-on-cert` and tags the document with `cg-cert-doc`. */
+      body.cg-on-cert .cg-cert-doc,
+      body.cg-on-cert .cg-cert-doc div,
+      body.cg-on-cert .cg-cert-doc table,
+      body.cg-on-cert .cg-cert-doc tbody,
+      body.cg-on-cert .cg-cert-doc thead,
+      body.cg-on-cert .cg-cert-doc tr,
+      body.cg-on-cert .cg-cert-doc td,
+      body.cg-on-cert .cg-cert-doc th,
+      body.cg-on-cert .cg-cert-doc p,
+      body.cg-on-cert .cg-cert-doc span,
+      body.cg-on-cert .cg-cert-doc h1,
+      body.cg-on-cert .cg-cert-doc h2,
+      body.cg-on-cert .cg-cert-doc h3,
+      body.cg-on-cert .cg-cert-doc h4 {
+        background-color: #ffffff !important;
+        background-image: none !important;
+        color: #000000 !important;
+      }
+      /* Header rows / total rows in the certificate use an orange band — keep that
+         distinct from the white body cells so the document still reads correctly. */
+      body.cg-on-cert .cg-cert-doc [style*="background:#F2682A"],
+      body.cg-on-cert .cg-cert-doc [style*="background: #F2682A"],
+      body.cg-on-cert .cg-cert-doc [style*="background-color:#F2682A"],
+      body.cg-on-cert .cg-cert-doc [style*="background-color: #F2682A"],
+      body.cg-on-cert .cg-cert-doc [style*="background:#f2682a"],
+      body.cg-on-cert .cg-cert-doc [style*="background: #f2682a"] {
+        background-color: #F2682A !important;
+        color: #ffffff !important;
+      }
+      /* Pale grey label cells (e.g. "Signature", "Print Name") use #f0f0f0. */
+      body.cg-on-cert .cg-cert-doc [style*="background:#f0f0f0"],
+      body.cg-on-cert .cg-cert-doc [style*="background: #f0f0f0"] {
+        background-color: #f0f0f0 !important;
+        color: #000 !important;
+      }
+      /* Page background behind the certificate also goes light so the white sheet
+         doesn't sit on a dark page. */
+      body.cg-on-cert,
+      body.cg-on-cert #root,
+      body.cg-on-cert #root > div {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #000 !important;
+      }
     </style>
 
     <script type="module" crossorigin src="./assets/index-99y8mxxr.js"></script>
@@ -285,9 +335,52 @@
         return cur;
       }
 
+      // Detect when a Gas Safety Certificate document is on screen and tag its
+      // container so the dark-theme overrides can be reverted just for it.
+      function tagCertificate(root) {
+        var onCert = false;
+        // Find the certificate's title heading.
+        var heads = root.querySelectorAll("div, span, p, h1, h2, h3, h4");
+        for (var i = 0; i < heads.length; i++) {
+          var h = heads[i];
+          if (h.children.length > 0) continue;
+          var ht = (h.textContent || "").trim();
+          if (!ht) continue;
+          if (ht.indexOf("Domestic/Landlord Gas Safety") === 0) {
+            // Climb to the printable document wrapper. The certificate is built
+            // from a stack of <div>s; climb until we reach the largest container
+            // that holds the whole document (ancestor with the certificate header
+            // and the bottom signature row).
+            var doc = h;
+            for (var k = 0; k < 12 && doc.parentElement; k++) {
+              doc = doc.parentElement;
+              // Stop when we hit the page wrapper (#root or body).
+              if (doc === root || doc === document.body) { doc = doc.children[0] || doc; break; }
+            }
+            if (doc && doc !== root && doc !== document.body) {
+              doc.classList.add("cg-cert-doc");
+              onCert = true;
+            }
+            break;
+          }
+        }
+        // Also treat "PDF Preview" pages as cert mode (covers the wrapper too).
+        if (!onCert) {
+          for (var j = 0; j < heads.length; j++) {
+            var hh = heads[j];
+            if (hh.children.length > 0) continue;
+            var tt = (hh.textContent || "").trim();
+            if (tt === "PDF Preview") { onCert = true; break; }
+          }
+        }
+        if (onCert) document.body.classList.add("cg-on-cert");
+        else document.body.classList.remove("cg-on-cert");
+      }
+
       function applyFilters() {
         var root = document.getElementById("root");
         if (!root) return;
+        tagCertificate(root);
         var labels = root.querySelectorAll("div, span, p, h2, h3, h4");
         labels.forEach(function (el) {
           if (el.children.length > 0) return; // leaf text nodes only
