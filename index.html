@@ -89,10 +89,8 @@
 
       doneBtn.addEventListener("click", function () {
         overlay.classList.remove("show");
-        // Reset run-through: clear in-app state and bounce home.
+        // Reset run-through: clear in-app state but keep engineer profile & queue.
         try {
-          // Citizen Gas stores wizard state under "citizenGas." prefixed keys; nuke transient ones
-          // but keep engineer profile & queue.
           Object.keys(localStorage).forEach(function (k) {
             if (k.indexOf("citizenGas.") === 0
               && k !== "citizenGas.engineerProfile"
@@ -101,7 +99,16 @@
             }
           });
         } catch (e) {}
-        // Hard navigate so React re-mounts cleanly.
+        // Send the engineer to the dashboard so the queued visit is auto-imported
+        // into Records → Gas Safety Certificates → today's date subfolder.
+        try {
+          var queue = JSON.parse(localStorage.getItem("citizenGas.queue") || "[]");
+          if (queue && queue.length > 0) {
+            window.location.href = "/dashboard/?admin=1";
+            return;
+          }
+        } catch (e) {}
+        // No queued work — just bounce home.
         window.location.href = "/";
       });
 
