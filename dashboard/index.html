@@ -59,6 +59,90 @@
     <div id="root"></div>
     <!-- Splash injected by JS only when queue/prefill is present. -->
 
+    <!-- Records normaliser: every record lives inside a date subfolder (DD Mon YYYY). -->
+    <script>
+    (function () {
+      var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      function dateFolderName(d) {
+        return String(d.getDate()).padStart(2,"0") + " " + MONTHS[d.getMonth()] + " " + d.getFullYear();
+      }
+      function isDateFolderName(s) {
+        return /^\d{2}\s(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{4}$/.test(String(s||"").trim());
+      }
+      function recordDate(r) {
+        var iso = r && (r.createdAt || r.inspectionDate || r.certDate);
+        var d = iso ? new Date(iso) : null;
+        if (!d || isNaN(d.getTime())) d = new Date();
+        return d;
+      }
+
+      function normaliseRecords() {
+        var records, folders;
+        try { records = JSON.parse(localStorage.getItem("gsc_records") || "[]"); } catch (e) { records = []; }
+        try { folders = JSON.parse(localStorage.getItem("gsc_folders") || "[]"); } catch (e) { folders = []; }
+        if (!Array.isArray(records) || !Array.isArray(folders)) return;
+
+        // Index existing date folders by name.
+        var byName = {};
+        folders.forEach(function (f) { if (f && isDateFolderName(f.name)) byName[f.name] = f; });
+
+        var changed = false;
+
+        // Make sure every record points to a date folder matching its creation date.
+        records.forEach(function (r) {
+          if (!r) return;
+          var name = dateFolderName(recordDate(r));
+          var folder = byName[name];
+          if (!folder) {
+            folder = { id: "folder_" + Date.now() + "_" + Math.random().toString(36).slice(2,7), name: name };
+            folders.push(folder);
+            byName[name] = folder;
+            changed = true;
+          }
+          if (r.gscFolder !== folder.id) { r.gscFolder = folder.id; changed = true; }
+        });
+
+        // Drop non-date folders entirely.
+        var keep = [], dropped = {};
+        folders.forEach(function (f) {
+          if (f && isDateFolderName(f.name)) keep.push(f);
+          else if (f && f.id) { dropped[f.id] = true; changed = true; }
+        });
+        // Any record that pointed to a dropped folder will already have been
+        // re-assigned above (since we ran the date-folder pass first).
+        // Drop empty date folders too — only keep folders that contain at least one record.
+        var folderHasRecord = {};
+        records.forEach(function (r) { if (r && r.gscFolder) folderHasRecord[r.gscFolder] = true; });
+        keep = keep.filter(function (f) {
+          if (folderHasRecord[f.id]) return true;
+          changed = true;
+          return false;
+        });
+
+        if (changed) {
+          localStorage.setItem("gsc_records", JSON.stringify(records));
+          localStorage.setItem("gsc_folders", JSON.stringify(keep));
+        }
+      }
+
+      // Run once on load, and then re-run whenever the dashboard might have just
+      // created new records (after auto-import, after manual save).
+      window.addEventListener("DOMContentLoaded", normaliseRecords);
+      window.addEventListener("storage", function (ev) {
+        if (ev && (ev.key === "gsc_records" || ev.key === "gsc_folders")) normaliseRecords();
+      });
+      // Lightweight polling so navigation between screens within the same tab also catches changes.
+      var lastRecsLen = -1;
+      setInterval(function () {
+        try {
+          var raw = localStorage.getItem("gsc_records") || "[]";
+          var len = raw.length;
+          if (len !== lastRecsLen) { lastRecsLen = len; normaliseRecords(); }
+        } catch (e) {}
+      }, 1500);
+    })();
+    </script>
+
     <!-- Tile filter: hide everything on the home screen except New Job and Records. -->
     <script>
     (function () {
