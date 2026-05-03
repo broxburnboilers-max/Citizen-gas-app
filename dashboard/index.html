@@ -23,9 +23,30 @@
       #root > div { background: var(--cg-bg) !important; }
       #root [style*="background:#fff"]:not(textarea):not(input):not(select),
       #root [style*="background: #fff"]:not(textarea):not(input):not(select),
-      #root [style*="background:#ffffff"]:not(textarea):not(input):not(select) {
-        background: var(--cg-card) !important; color: var(--cg-text) !important;
+      #root [style*="background:#ffffff"]:not(textarea):not(input):not(select),
+      #root [style*="background: #ffffff"]:not(textarea):not(input):not(select),
+      #root [style*="background: rgb(255, 255, 255)"]:not(textarea):not(input):not(select),
+      #root [style*="background:rgb(255, 255, 255)"]:not(textarea):not(input):not(select),
+      #root [style*="background-color: rgb(255, 255, 255)"]:not(textarea):not(input):not(select),
+      #root [style*="background-color:rgb(255, 255, 255)"]:not(textarea):not(input):not(select) {
+        background: var(--cg-card) !important;
+        background-color: var(--cg-card) !important;
+        color: var(--cg-text) !important;
         border-color: var(--cg-card-border) !important;
+      }
+      /* Light gray bottom nav / tab strip — also dark. */
+      #root [style*="rgb(248, 249, 252)"],
+      #root [style*="rgb(245, 245, 245)"]:not(textarea):not(input):not(select),
+      #root [style*="rgb(247, 247, 250)"] {
+        background: #0E1A20 !important;
+        background-color: #0E1A20 !important;
+        border-color: #2a3d47 !important;
+      }
+      /* Light gray border lines (e.g. nav top border rgb(221,221,238)). */
+      #root [style*="rgb(221, 221, 238)"],
+      #root [style*="rgb(229, 231, 235)"],
+      #root [style*="rgb(238, 238, 238)"] {
+        border-color: #2a3d47 !important;
       }
       #root [style*="border-radius: 50%"][style*="border"],
       #root [style*="borderRadius:50%"] { border-color: var(--cg-primary) !important; }
@@ -60,13 +81,26 @@
          Pale surface rgb(240, 244, 255) -> #FFF4EE  (Import button bg)
       */
 
-      /* Solid primary blue — backgrounds (Export button, Records header, etc.) */
+      /* Solid primary blue — default to orange (buttons), but the page header bar
+         (a tall element near the top) is recoloured to the dark bg below so the
+         whole screen reads as one continuous dark surface like the unlock screen. */
       #root [style*="background: rgb(42, 82, 212)"],
       #root [style*="background:rgb(42, 82, 212)"],
       #root [style*="background-color: rgb(42, 82, 212)"],
       #root [style*="background-color:rgb(42, 82, 212)"] {
         background: #F2682A !important;
         background-color: #F2682A !important;
+      }
+      /* Header bar — bundle renders it as a linear-gradient from deep blue to primary blue.
+         Replace the gradient with the dark page background so the screen reads as one
+         continuous dark surface like the unlock screen. */
+      #root [style*="linear-gradient"][style*="rgb(26, 59, 191)"],
+      #root [style*="linear-gradient"][style*="rgb(42, 82, 212)"],
+      #root [style*="linear-gradient"][style*="rgb(26, 58, 143)"] {
+        background: var(--cg-bg) !important;
+        background-image: none !important;
+        background-color: var(--cg-bg) !important;
+        border-bottom: 1px solid var(--cg-card-border) !important;
       }
       /* Solid primary blue — text colour (Import button label, links). */
       #root [style*="color: rgb(42, 82, 212)"],
@@ -98,13 +132,14 @@
         border-color: #C8501C !important;
         color: #C8501C !important;
       }
-      /* Pale blue surface (Import button bg). */
+      /* Pale blue surface (Import button bg) — transparent on dark theme so the
+         orange outline + label sit cleanly on the parent card. */
       #root [style*="background: rgb(240, 244, 255)"],
       #root [style*="background:rgb(240, 244, 255)"],
       #root [style*="background-color: rgb(240, 244, 255)"],
       #root [style*="background-color:rgb(240, 244, 255)"] {
-        background: #FFF4EE !important;
-        background-color: #FFF4EE !important;
+        background: transparent !important;
+        background-color: transparent !important;
       }
       /* SVG icons set via fill/stroke attributes (not inline style).
          Primary blue variants — map to orange. */
