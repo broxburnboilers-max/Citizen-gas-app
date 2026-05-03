@@ -51,6 +51,76 @@
          so the auto-clicker can find GSC Email. */
       .cg-hide-tile { display: none !important; }
       body.cg-show-all-tiles .cg-hide-tile { display: flex !important; }
+
+      /* === Citizen Gas orange recolor — replace bundle's blue scheme ===
+         Bundle inline-styles use rgb()/rgba() notation. Map blues to orange.
+         Primary  rgb(42, 82, 212)   = #2a52d4  -> #F2682A (cg-primary)
+         Deep     rgb(26, 58, 143)   / rgb(26, 59, 191) -> #C8501C (cg-primary-deep)
+         Pale tint rgba(42, 82, 212, 0.094) -> rgba(242, 104, 42, 0.12) (icon bg)
+         Pale surface rgb(240, 244, 255) -> #FFF4EE  (Import button bg)
+      */
+
+      /* Solid primary blue — backgrounds (Export button, Records header, etc.) */
+      #root [style*="background: rgb(42, 82, 212)"],
+      #root [style*="background:rgb(42, 82, 212)"],
+      #root [style*="background-color: rgb(42, 82, 212)"],
+      #root [style*="background-color:rgb(42, 82, 212)"] {
+        background: #F2682A !important;
+        background-color: #F2682A !important;
+      }
+      /* Solid primary blue — text colour (Import button label, links). */
+      #root [style*="color: rgb(42, 82, 212)"],
+      #root [style*="color:rgb(42, 82, 212)"] {
+        color: #F2682A !important;
+      }
+      /* Solid primary blue — borders (Import button outline, etc.). */
+      #root [style*="solid rgb(42, 82, 212)"],
+      #root [style*="border-color: rgb(42, 82, 212)"],
+      #root [style*="border-color:rgb(42, 82, 212)"] {
+        border-color: #F2682A !important;
+      }
+      /* Pale primary tint (rgba 0.094) used as record-row icon backgrounds. */
+      #root [style*="rgba(42, 82, 212, 0.094)"] {
+        background: rgba(242, 104, 42, 0.12) !important;
+        background-color: rgba(242, 104, 42, 0.12) !important;
+      }
+      /* Deep blue variants used as record-row icon backgrounds. */
+      #root [style*="rgba(26, 58, 143, 0.094)"],
+      #root [style*="rgba(26, 59, 191, 0.094)"] {
+        background: rgba(200, 80, 28, 0.12) !important;
+        background-color: rgba(200, 80, 28, 0.12) !important;
+      }
+      /* Solid deep blue (header gradients, pressed states). */
+      #root [style*="rgb(26, 58, 143)"]:not([style*="0.094"]),
+      #root [style*="rgb(26, 59, 191)"]:not([style*="0.094"]) {
+        background: #C8501C !important;
+        background-color: #C8501C !important;
+        border-color: #C8501C !important;
+        color: #C8501C !important;
+      }
+      /* Pale blue surface (Import button bg). */
+      #root [style*="background: rgb(240, 244, 255)"],
+      #root [style*="background:rgb(240, 244, 255)"],
+      #root [style*="background-color: rgb(240, 244, 255)"],
+      #root [style*="background-color:rgb(240, 244, 255)"] {
+        background: #FFF4EE !important;
+        background-color: #FFF4EE !important;
+      }
+      /* SVG icons set via fill/stroke attributes (not inline style).
+         Primary blue variants — map to orange. */
+      #root svg [fill="#2a52d4" i], #root svg[fill="#2a52d4" i],
+      #root svg [stroke="#2a52d4" i], #root svg[stroke="#2a52d4" i] {
+        fill: #F2682A !important;
+        stroke: #F2682A !important;
+      }
+      /* Deep blue variants — map to deep orange. */
+      #root svg [fill="#1a3bbf" i], #root svg[fill="#1a3bbf" i],
+      #root svg [stroke="#1a3bbf" i], #root svg[stroke="#1a3bbf" i],
+      #root svg [fill="#1a3a8f" i], #root svg[fill="#1a3a8f" i],
+      #root svg [stroke="#1a3a8f" i], #root svg[stroke="#1a3a8f" i] {
+        fill: #C8501C !important;
+        stroke: #C8501C !important;
+      }
     </style>
 
     <script type="module" crossorigin src="./assets/index-99y8mxxr.js"></script>
