@@ -8,7 +8,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Citizen Gas — Records</title>
 
-    <!-- Citizen Gas theme overlay (no bundle changes) -->
     <style>
       :root {
         --cg-bg: #18252D;
@@ -66,7 +65,6 @@
       <div class="msg" id="cg-msg">Preparing your data</div>
     </div>
 
-    <!-- Citizen Gas → Dashboard adapter (parser + bundle untouched) -->
     <script>
     (function () {
       var splash = document.getElementById("cg-splash");
@@ -77,127 +75,78 @@
         if (splash) { splash.classList.add("hide"); setTimeout(function(){ splash.remove(); }, 400); }
       }
 
-      // ── 1. Capture ?prefill ────────────────────────────────────────────────
-      var prefillRaw = null;
+      // ── Decide intent ─────────────────────────────────────────────────────
+      var queue = [];
+      var legacyPrefill = null;
       try {
         var u = new URL(window.location.href);
+        var isAdmin = u.searchParams.get("admin") === "1";
         var pre = u.searchParams.get("prefill");
         if (pre) {
-          try { prefillRaw = decodeURIComponent(escape(atob(decodeURIComponent(pre)))); }
-          catch (e) { try { prefillRaw = decodeURIComponent(pre); } catch (_e) { prefillRaw = pre; } }
-          u.searchParams.delete("prefill");
-          history.replaceState(null, "", u.pathname + (u.search || "") + (u.hash || ""));
-          if (prefillRaw && prefillRaw.trim()) {
-            sessionStorage.setItem("__citizenGasPrefillRaw", prefillRaw);
-          }
+          try { legacyPrefill = decodeURIComponent(escape(atob(decodeURIComponent(pre)))); }
+          catch (e) { try { legacyPrefill = decodeURIComponent(pre); } catch (_e) { legacyPrefill = pre; } }
         }
-        if (!prefillRaw) prefillRaw = sessionStorage.getItem("__citizenGasPrefillRaw");
-      } catch (e) { console.error("prefill capture failed", e); }
+        u.searchParams.delete("prefill");
+        u.searchParams.delete("admin");
+        history.replaceState(null, "", u.pathname + (u.search || "") + (u.hash || ""));
 
-      if (!prefillRaw || !prefillRaw.trim()) { hideSplashShowApp(); return; }
+        if (isAdmin) {
+          try { queue = JSON.parse(localStorage.getItem("citizenGas.queue") || "[]"); } catch (e) { queue = []; }
+        } else if (legacyPrefill && legacyPrefill.trim()) {
+          queue = [{ id: "legacy_" + Date.now(), createdAt: Date.now(), body: legacyPrefill }];
+        }
+      } catch (e) { console.error("intent capture failed", e); }
 
-      // Suppress alert() boxes during auto-flow so they don't block the next click
-      var _origAlert = window.alert;
-      window.alert = function (msg) { console.log("[adapter] suppressed alert:", msg); };
-      // Restore alert after flow completes (or budget elapses)
-      function restoreAlert() { try { window.alert = _origAlert; } catch (e) {} }
+      if (!queue || queue.length === 0) { hideSplashShowApp(); return; }
 
-      // ── 2. Translate Citizen Gas body → GSC parser template ───────────────
-      // Citizen Gas body fields per property:
-      //   Cert Ref: <addr1>, <addr2>, <postcode>
-      //   Date: <date>
-      //   Visit: 1|2
-      //   Install Address 1/2: <…>
-      //   Install Postcode: <…>
-      //   ALARMS:  Carbon Monoxide Alarm: Yes/No  / Fire Alarm: Yes/No
-      //   APPLIANCE 1: Location, Type, Make, Model, Heat Input
-      //   APPLIANCE 2 (cooker/hob): Location, Make, Operating Pressure
-      //   APPLIANCE 3 (gas fire):   Make, Model
-      //   COOKER CAP/INSTALL & TIGHTNESS TEST block (info only)
-      //   FAULTS list (or "None reported.")
-      //
-      // GSC parser expects:
-      //   PROPERTY n / Cert Ref / Client Name / Client Address 1..3 / Client Postcode / Client Tel / Client Email
-      //   Install Name / Install Address 1..3 / Install Postcode / Install Tel
-      //   APPLIANCE n: Location / Make / Model / Type / Heat Input / CO Reading / CO2 Reading
-      //                Combustion Analysis Reading / Operating Pressure / Flue Type
-      //                Appliance Inspected / Appliance Serviced / Appliance Safe to Use
-      //   FAULT n: Fault Details / Remedial Work / Warning Notice Fixed
-      //   END OF JOB
-      function getEng(body) {
-        var m = body.match(/^Engineer:\s*(.+)$/m);
-        return m ? m[1].trim() : "";
-      }
+      // ── Translate Citizen Gas body → GSC parser template ──────────────────
+      function getEng(body) { var m = body.match(/^Engineer:\s*(.+)$/m); return m ? m[1].trim() : ""; }
       function splitProperties(body) {
         var parts = body.split(/\n\s*PROPERTY\s+\d+\s*\n/gi);
         if (parts.length <= 1) return [];
-        // first chunk is preamble; rest are properties (one block per property)
-        return parts.slice(1).map(function (chunk) {
-          // Trim trailing separators between properties
-          return chunk.split(/\n=+\n/)[0];
-        });
+        return parts.slice(1).map(function (chunk) { return chunk.split(/\n=+\n/)[0]; });
       }
       function fieldVal(block, key) {
         var rx = new RegExp("^" + key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:\\s*(.*)$", "mi");
-        var m = block.match(rx);
-        return m ? m[1].trim() : "";
+        var m = block.match(rx); return m ? m[1].trim() : "";
       }
       function getApplianceBlocks(propBlock) {
-        // Split on "APPLIANCE n" headers; keep each block
         var out = [];
         var rx = /APPLIANCE\s+(\d+)\s*\n([\s\S]*?)(?=\n\s*APPLIANCE\s+\d+\s*\n|\nFAULTS\b|\nCOOKER\b|\nALARMS\b|\nALARM\b|\nFAULT\s+\d|\n=+|$)/gi;
         var m;
-        while ((m = rx.exec(propBlock)) !== null) {
-          out.push({ idx: parseInt(m[1], 10), body: m[2] });
-        }
+        while ((m = rx.exec(propBlock)) !== null) out.push({ idx: parseInt(m[1], 10), body: m[2] });
         return out;
       }
       function getFaultBlocks(propBlock) {
         var out = [];
-        var rx = /FAULT\s+(\d+)\s*\n([\s\S]*?)(?=\n\s*FAULT\s+\d+\s*\n|\n=+|\n\s*$|$)/gi;
-        var m;
-        while ((m = rx.exec(propBlock)) !== null) {
-          out.push({ idx: parseInt(m[1], 10), body: m[2] });
-        }
-        // Or, if "FAULTS" section exists with bullets
-        if (out.length === 0) {
-          var fIdx = propBlock.search(/\nFAULTS\b/i);
-          if (fIdx >= 0) {
-            var faultsSec = propBlock.slice(fIdx).split(/\n=+|\n\s*$/)[0];
-            // Skip "None reported."
-            if (!/None reported/i.test(faultsSec)) {
-              // Split on blank lines
-              var pieces = faultsSec.split(/\n\s*\n/).slice(1);
-              pieces.forEach(function (p, i) { if (p.trim()) out.push({ idx: i + 1, body: p }); });
-            }
+        var fIdx = propBlock.search(/\nFAULTS\b/i);
+        if (fIdx >= 0) {
+          var faultsSec = propBlock.slice(fIdx).split(/\n=+|\n\s*$/)[0];
+          if (!/None reported/i.test(faultsSec)) {
+            var pieces = faultsSec.split(/\n\s*\n/).slice(1);
+            pieces.forEach(function (p, i) { if (p.trim()) out.push({ idx: i + 1, body: p }); });
           }
         }
         return out;
       }
-
       function buildGSCTemplate(citizenBody) {
         var props = splitProperties(citizenBody);
-        if (props.length === 0) return citizenBody; // fall back; parser will reject
+        if (props.length === 0) return citizenBody;
 
         var lines = [];
         var engineerName = getEng(citizenBody);
 
         props.forEach(function (block, pi) {
           var n = pi + 1;
-
           var addr1     = fieldVal(block, "Install Address 1");
           var addr2     = fieldVal(block, "Install Address 2");
           var postcode  = fieldVal(block, "Install Postcode");
           var date      = fieldVal(block, "Date");
-          var visit     = fieldVal(block, "Visit");
           var coAlarm   = fieldVal(block, "Carbon Monoxide Alarm");
           var fireAlarm = fieldVal(block, "Fire Alarm");
 
           var certRef = "GSC-" + (Date.now() + n).toString().slice(-8);
-          var clientName = engineerName ? engineerName.split(/\s+/)[0] + "'s Customer" : "Customer";
-          // Better: use a placeholder client name if not present (parser requires SOMETHING).
-          // Citizen Gas does not collect client name, so fall back to address-based label.
-          if (addr1) clientName = addr1;
+          var clientName = addr1 || "Customer";
 
           lines.push("PROPERTY " + n);
           lines.push("------------------------------");
@@ -218,7 +167,6 @@
           lines.push("Install Tel: ");
           lines.push("");
 
-          // Appliances ------------------------------------------------------
           var apps = getApplianceBlocks(block);
           apps.forEach(function (a, ai) {
             var ab = a.body;
@@ -229,7 +177,6 @@
             var heat  = fieldVal(ab, "Heat Input");
             var op    = fieldVal(ab, "Operating Pressure");
 
-            // Default sensible values for required fields the parser maps:
             lines.push("APPLIANCE " + (ai + 1));
             lines.push("Location: " + (loc || ""));
             lines.push("Type: " + (typ || (ai === 0 ? "Boiler" : (ai === 1 ? "Cooker" : "Gas Fire"))));
@@ -252,13 +199,12 @@
             lines.push("");
           });
 
-          // Faults ----------------------------------------------------------
           var faults = getFaultBlocks(block);
           faults.forEach(function (f, fi) {
             var fb = f.body;
-            var details = fieldVal(fb, "Fault") || fieldVal(fb, "Details") || fb.split("\n").filter(function(x){return x.trim();}).slice(0,1).join(" ");
-            var remedial = fieldVal(fb, "Remedial") || fieldVal(fb, "Remedial Work") || "";
-            var warning  = fieldVal(fb, "Warning Notice Fixed") || fieldVal(fb, "Warning Notice") || "No";
+            var details = fieldVal(fb, "Fault") || fb.split("\n").filter(function(x){return x.trim();}).slice(0,1).join(" ");
+            var remedial = fieldVal(fb, "Remedial") || "";
+            var warning  = fieldVal(fb, "Warning Notice Fixed") || "No";
             lines.push("FAULT " + (fi + 1));
             lines.push("Fault Details: " + details);
             lines.push("Remedial Work: " + remedial);
@@ -266,7 +212,6 @@
             lines.push("");
           });
 
-          // Final checks (alarms) — informational; parser ignores unknown fields safely.
           if (coAlarm)   lines.push("Carbon Monoxide Alarm: " + coAlarm);
           if (fireAlarm) lines.push("Fire Alarm: " + fireAlarm);
           lines.push("");
@@ -275,18 +220,28 @@
         lines.push("END OF JOB");
         return lines.join("\n");
       }
-
-      var translated;
-      try {
-        translated = buildGSCTemplate(prefillRaw);
-        sessionStorage.setItem("__citizenGasPrefillTranslated", translated);
-        console.log("[adapter] translated body:\n" + translated);
-      } catch (e) {
-        console.error("[adapter] translation failed", e);
-        translated = prefillRaw;
+      function dateFolderName(d) {
+        var dd = String(d.getDate()).padStart(2, "0");
+        var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        return dd + " " + months[d.getMonth()] + " " + d.getFullYear();
       }
 
-      // ── 3. Drive the dashboard UI ─────────────────────────────────────────
+      // Build a per-job translation map keyed by createdAt (for date-folder name)
+      var jobs = queue.map(function (q) {
+        var translated;
+        try { translated = buildGSCTemplate(q.body || ""); }
+        catch (e) { console.error("[adapter] translate failed", e); translated = q.body || ""; }
+        var d = q.createdAt ? new Date(q.createdAt) : new Date();
+        return { id: q.id, createdAt: q.createdAt || Date.now(), translated: translated, folderName: dateFolderName(d) };
+      });
+      console.log("[adapter] queued jobs:", jobs.length);
+
+      // Suppress alert() during auto-flow
+      var _origAlert = window.alert;
+      window.alert = function (msg) { console.log("[adapter] suppressed alert:", msg); };
+      function restoreAlert() { try { window.alert = _origAlert; } catch (e) {} }
+
+      // ── Drive the dashboard ───────────────────────────────────────────────
       function setReactInputValue(el, value) {
         var proto = el.tagName === "TEXTAREA" ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
         var setter = Object.getOwnPropertyDescriptor(proto, "value").set;
@@ -314,12 +269,6 @@
         }
         return el;
       }
-      function todayFolderName() {
-        var d = new Date();
-        var dd = String(d.getDate()).padStart(2, "0");
-        var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-        return dd + " " + months[d.getMonth()] + " " + d.getFullYear();
-      }
       function snapshotRecordIds() {
         try {
           var arr = JSON.parse(localStorage.getItem("gsc_records") || "[]");
@@ -328,14 +277,13 @@
           return ids;
         } catch (e) { return {}; }
       }
-      function tagNewRecordsIntoTodayFolder(beforeIds) {
+      function tagNewRecordsIntoFolder(beforeIds, folderName) {
         try {
           var records = JSON.parse(localStorage.getItem("gsc_records") || "[]");
           var folders = JSON.parse(localStorage.getItem("gsc_folders") || "[]");
-          var name = todayFolderName();
-          var existing = folders.find(function (f) { return f && f.name === name; });
+          var existing = folders.find(function (f) { return f && f.name === folderName; });
           var folderId = existing ? existing.id : ("f_" + Date.now());
-          if (!existing) { folders.push({ id: folderId, name: name }); localStorage.setItem("gsc_folders", JSON.stringify(folders)); }
+          if (!existing) { folders.push({ id: folderId, name: folderName }); localStorage.setItem("gsc_folders", JSON.stringify(folders)); }
           var changed = false;
           records.forEach(function (r) {
             var key = r.savedAt || r.id || JSON.stringify(r).slice(0,80);
@@ -345,15 +293,32 @@
         } catch (e) { console.error("[adapter] folder tag failed", e); }
       }
 
-      var BUDGET_MS = 60000;
+      var BUDGET_MS = 60000 + jobs.length * 30000; // generous per-job budget
       var startedAt = Date.now();
+      var jobIdx = 0;
       var phase = "wait-unlock";
       var beforeIds = null;
 
+      function nextJob() {
+        jobIdx++;
+        if (jobIdx >= jobs.length) {
+          // Done with all jobs
+          // Clear queue
+          try { localStorage.removeItem("citizenGas.queue"); } catch (e) {}
+          phase = "go-records";
+          return setTimeout(tick, 300);
+        }
+        // Go back to home, then GSC Email again for next job
+        var back = findByText("button", "Back") || findByText("button", "Home")
+                || document.querySelector('button[aria-label="Back"]');
+        if (back) climbToClickable(back).click();
+        beforeIds = snapshotRecordIds();
+        phase = "wait-home";
+        setTimeout(tick, 400);
+      }
+
       function tick() {
         if (Date.now() - startedAt > BUDGET_MS) {
-          sessionStorage.removeItem("__citizenGasPrefillRaw");
-          sessionStorage.removeItem("__citizenGasPrefillTranslated");
           restoreAlert();
           hideSplashShowApp();
           return;
@@ -367,7 +332,8 @@
             return setTimeout(tick, 300);
           }
           document.body.classList.add("cg-stealth");
-          setMsg("Opening certificate parser");
+          setMsg("Processing " + jobs.length + " visit" + (jobs.length === 1 ? "" : "s"));
+          beforeIds = snapshotRecordIds();
           phase = "wait-home";
           return setTimeout(tick, 200);
         }
@@ -376,8 +342,7 @@
           var gscNode = findByText("div", "GSC Email") || findByText("button", "GSC Email") || findByText("span", "GSC Email");
           if (gscNode) {
             climbToClickable(gscNode).click();
-            beforeIds = snapshotRecordIds();
-            setMsg("Reading visit data");
+            setMsg("Reading visit " + (jobIdx + 1) + " of " + jobs.length);
             phase = "wait-import-tab";
           }
           return setTimeout(tick, 250);
@@ -393,8 +358,8 @@
         if (phase === "wait-textarea") {
           var ta = document.querySelector('textarea');
           if (ta) {
-            setReactInputValue(ta, translated);
-            setMsg("Parsing certificates");
+            setReactInputValue(ta, jobs[jobIdx].translated);
+            setMsg("Parsing visit " + (jobIdx + 1));
             phase = "wait-parse";
           }
           return setTimeout(tick, 250);
@@ -410,15 +375,12 @@
         }
 
         if (phase === "wait-import-button") {
-          // After parse, an "Import" / "Create Certificate(s)" / similar button should appear.
           var imp = findByText("button", "Import")
                  || findByText("button", "Create Certificates")
                  || findByText("button", "Create Certificate")
                  || findByText("button", "Save");
           if (imp && !imp.disabled) {
             imp.click();
-            sessionStorage.removeItem("__citizenGasPrefillRaw");
-            sessionStorage.removeItem("__citizenGasPrefillTranslated");
             phase = "wait-records";
           }
           return setTimeout(tick, 350);
@@ -429,20 +391,16 @@
           var added = false;
           for (var k in afterIds) { if (!beforeIds[k]) { added = true; break; } }
           if (added) {
-            tagNewRecordsIntoTodayFolder(beforeIds);
-            setMsg("Saving to today's folder");
-            phase = "go-records";
-            return setTimeout(tick, 400);
+            tagNewRecordsIntoFolder(beforeIds, jobs[jobIdx].folderName);
+            setMsg("Saved to folder " + jobs[jobIdx].folderName);
+            return setTimeout(nextJob, 600);
           }
           return setTimeout(tick, 300);
         }
 
         if (phase === "go-records") {
-          // Dismiss any "✅ N Gas Safety Certificate created!" alert dialogs (alert() blocks JS,
-          // but if the bundle uses custom dialogs there'd be a button).
           var ok = findByText("button", "OK") || findByText("button", "Ok") || findByText("button", "Done");
           if (ok) climbToClickable(ok).click();
-
           var back = findByText("button", "Back") || findByText("button", "Home")
                   || document.querySelector('button[aria-label="Back"]');
           if (back) climbToClickable(back).click();

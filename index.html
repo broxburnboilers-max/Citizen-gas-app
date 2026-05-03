@@ -14,8 +14,110 @@
     />
     <script type="module" crossorigin src="./assets/index-DuY2PSMh.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-yAhcxWvt.css">
+    <style>
+      #cg-sent-overlay {
+        position: fixed; inset: 0; z-index: 99999;
+        background: #18252D;
+        color: #f5f5f5;
+        display: none; flex-direction: column; align-items: center; justify-content: center;
+        font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+        text-align: center; padding: 24px;
+      }
+      #cg-sent-overlay.show { display: flex; }
+      #cg-sent-overlay .tick {
+        width: 96px; height: 96px; border-radius: 50%;
+        background: #F2682A;
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 24px;
+        box-shadow: 0 8px 32px rgba(242,104,42,0.35);
+      }
+      #cg-sent-overlay .tick svg { width: 56px; height: 56px; stroke: #fff; stroke-width: 4; fill: none; }
+      #cg-sent-overlay h1 { font-size: 28px; font-weight: 800; margin: 0 0 8px; }
+      #cg-sent-overlay p { font-size: 16px; color: #b8c2c8; margin: 0 0 32px; max-width: 320px; line-height: 1.5; }
+      #cg-sent-overlay button {
+        background: #F2682A; color: #fff; border: 0;
+        padding: 14px 36px; border-radius: 12px; font-size: 16px; font-weight: 700;
+        cursor: pointer; min-width: 180px;
+      }
+      #cg-sent-overlay button:active { transform: scale(0.98); }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Sent confirmation overlay (engineer's end-of-flow) -->
+    <div id="cg-sent-overlay" role="dialog" aria-live="polite">
+      <div class="tick">
+        <svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      </div>
+      <h1>Sent</h1>
+      <p>Visit data has been saved. Thank you.</p>
+      <button id="cg-sent-done" type="button">Done</button>
+    </div>
+
+    <script>
+    (function () {
+      var overlay = document.getElementById("cg-sent-overlay");
+      var doneBtn = document.getElementById("cg-sent-done");
+
+      window.addEventListener("citizenGas:queued", function () {
+        overlay.classList.add("show");
+      });
+
+      doneBtn.addEventListener("click", function () {
+        overlay.classList.remove("show");
+        // Reset run-through: clear in-app state and bounce home.
+        try {
+          // Citizen Gas stores wizard state under "citizenGas." prefixed keys; nuke transient ones
+          // but keep engineer profile & queue.
+          Object.keys(localStorage).forEach(function (k) {
+            if (k.indexOf("citizenGas.") === 0
+              && k !== "citizenGas.engineerProfile"
+              && k !== "citizenGas.queue") {
+              localStorage.removeItem(k);
+            }
+          });
+        } catch (e) {}
+        // Hard navigate so React re-mounts cleanly.
+        window.location.href = "/";
+      });
+
+      // ── Long-press Citizen Gas logo / header → admin entry to dashboard ──
+      var pressTimer = null;
+      var PRESS_MS = 1500;
+
+      function startPress(e) {
+        clearTimeout(pressTimer);
+        pressTimer = setTimeout(function () {
+          // Visual cue
+          try { navigator.vibrate && navigator.vibrate(40); } catch (e) {}
+          window.location.href = "/dashboard/?admin=1";
+        }, PRESS_MS);
+      }
+      function endPress() { clearTimeout(pressTimer); pressTimer = null; }
+
+      function bindLogoLongPress() {
+        // Logo image: alt="Citizen Gas" (set in bundle); also h1 with Citizen Gas text in header.
+        var imgs = document.querySelectorAll('img[alt="Citizen Gas"]');
+        imgs.forEach(function (el) {
+          if (el.dataset.cgLpBound) return;
+          el.dataset.cgLpBound = "1";
+          el.addEventListener("touchstart", startPress, { passive: true });
+          el.addEventListener("touchend", endPress, { passive: true });
+          el.addEventListener("touchcancel", endPress, { passive: true });
+          el.addEventListener("mousedown", startPress);
+          el.addEventListener("mouseup", endPress);
+          el.addEventListener("mouseleave", endPress);
+        });
+      }
+
+      // Re-bind whenever DOM changes (React re-renders).
+      var mo = new MutationObserver(bindLogoLongPress);
+      window.addEventListener("DOMContentLoaded", function () {
+        bindLogoLongPress();
+        mo.observe(document.body, { childList: true, subtree: true });
+      });
+    })();
+    </script>
   </body>
 </html>
