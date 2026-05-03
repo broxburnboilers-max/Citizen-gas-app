@@ -675,11 +675,24 @@
         }
 
         if (phase === "wait-import-button") {
-          var imp = findByText("button", "Import")
-                 || findByText("button", "Create Certificates")
-                 || findByText("button", "Create Certificate")
-                 || findByText("button", "Save");
+          // The real button text is e.g. "✅ Create 1 Gas Safety Certificate".
+          // Match it via a regex sweep over enabled buttons, then fall back to known labels.
+          var imp = null;
+          var allBtns = Array.from(document.querySelectorAll("button"));
+          for (var bi = 0; bi < allBtns.length; bi++) {
+            var b = allBtns[bi];
+            if (b.disabled) continue;
+            var bt = (b.innerText || b.textContent || "").trim();
+            if (/create\b.*\bcertif/i.test(bt) || /create\b.*\bgsc/i.test(bt)) { imp = b; break; }
+          }
+          if (!imp) {
+            imp = findByText("button", "Create Certificates")
+               || findByText("button", "Create Certificate")
+               || findByText("button", "Import")
+               || findByText("button", "Save");
+          }
           if (imp && !imp.disabled) {
+            console.log("[adapter] clicking import button:", (imp.innerText || "").trim().slice(0, 60));
             imp.click();
             phase = "wait-records";
           }
