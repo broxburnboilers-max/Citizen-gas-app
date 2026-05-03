@@ -158,17 +158,18 @@
                           "gas isolation", "invoices", "quotes", "account reports",
                           "yearly reports", "yearly report"];
 
+      // Climb until we reach the actual row/tile card: an ancestor whose parent has
+      // enough siblings to be a list or a grid (≥5). We must move at least one level
+      // up so we don't return the leaf text node itself.
       function climbToTile(el) {
-        var tile = el;
-        for (var i = 0; i < 5; i++) {
-          if (!tile.parentElement) break;
-          var p = tile.parentElement;
-          if (p.children.length >= 2) {
-            if (p.children.length >= 3 || (p.children.length >= 2 && i > 0)) break;
-          }
-          tile = p;
+        var cur = el;
+        for (var i = 0; i < 8; i++) {
+          if (!cur.parentElement) break;
+          var pSibs = cur.parentElement.children.length;
+          if (pSibs >= 5 && i > 0) return cur;
+          cur = cur.parentElement;
         }
-        return tile;
+        return cur;
       }
 
       function applyFilters() {
