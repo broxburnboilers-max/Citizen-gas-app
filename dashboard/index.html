@@ -91,16 +91,15 @@
         background: #F2682A !important;
         background-color: #F2682A !important;
       }
-      /* Header bar — bundle renders it as a linear-gradient from deep blue to primary blue.
-         Replace the gradient with the dark page background so the screen reads as one
-         continuous dark surface like the unlock screen. */
+      /* Linear-gradient surfaces (page wrapper + page header bar). Bundle uses
+         linear-gradient(...) with the blue palette to paint the full-screen wrapper
+         and the sticky header. Replace with the dark page background. */
       #root [style*="linear-gradient"][style*="rgb(26, 59, 191)"],
       #root [style*="linear-gradient"][style*="rgb(42, 82, 212)"],
       #root [style*="linear-gradient"][style*="rgb(26, 58, 143)"] {
         background: var(--cg-bg) !important;
         background-image: none !important;
         background-color: var(--cg-bg) !important;
-        border-bottom: 1px solid var(--cg-card-border) !important;
       }
       /* Solid primary blue — text colour (Import button label, links). */
       #root [style*="color: rgb(42, 82, 212)"],
@@ -124,9 +123,10 @@
         background: rgba(200, 80, 28, 0.12) !important;
         background-color: rgba(200, 80, 28, 0.12) !important;
       }
-      /* Solid deep blue (header gradients, pressed states). */
-      #root [style*="rgb(26, 58, 143)"]:not([style*="0.094"]),
-      #root [style*="rgb(26, 59, 191)"]:not([style*="0.094"]) {
+      /* Solid deep blue (pressed-state buttons). Skip when used inside a linear-gradient
+         (those are handled by the header / page-wrapper rule below as dark surface). */
+      #root [style*="rgb(26, 58, 143)"]:not([style*="0.094"]):not([style*="linear-gradient"]),
+      #root [style*="rgb(26, 59, 191)"]:not([style*="0.094"]):not([style*="linear-gradient"]) {
         background: #C8501C !important;
         background-color: #C8501C !important;
         border-color: #C8501C !important;
