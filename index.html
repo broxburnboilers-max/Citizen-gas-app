@@ -40,10 +40,33 @@
         cursor: pointer; min-width: 180px;
       }
       #cg-sent-overlay button:active { transform: scale(0.98); }
+
+      /* Admin button — fixed in the bottom-right of every post-sign-in screen */
+      #cg-admin-btn {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 9998;
+        background: rgba(242,104,42,0.95);
+        color: #fff;
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 18px;
+        font: 700 13px/1 ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+        cursor: pointer;
+        display: none; /* shown by JS once engineer is signed in */
+      }
+      #cg-admin-btn:active { transform: scale(0.97); }
     </style>
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Admin shortcut to dashboard (only visible after engineer sign-in) -->
+    <button id="cg-admin-btn" type="button" aria-label="Open admin dashboard">Admin</button>
 
     <!-- Sent confirmation overlay (engineer's end-of-flow) -->
     <div id="cg-sent-overlay" role="dialog" aria-live="polite">
@@ -82,98 +105,35 @@
         window.location.href = "/";
       });
 
-      // ── Long-press Citizen Gas logo / header → admin entry to dashboard ──
-      // Inject CSS that disables the browser's native image callout / context menu
-      // / text-selection on any element we tag for long-press. Without this, mobile
-      // Chrome shows its own "Open image / Copy image" sheet before our timer fires.
-      (function injectCss() {
-        var s = document.createElement("style");
-        s.textContent = '[data-cg-lp]{ -webkit-touch-callout:none !important; -webkit-user-select:none !important; user-select:none !important; -webkit-user-drag:none !important; -webkit-tap-highlight-color:transparent; touch-action:manipulation; pointer-events:auto; }';
-        document.head.appendChild(s);
-      })();
+      // ── Admin button → dashboard (visible only after engineer sign-in) ──
+      var adminBtn = document.getElementById("cg-admin-btn");
 
-      var pressTimer = null;
-      var pressFired = false;
-      var PRESS_MS = 1500;
-
-      function startPress(e) {
-        clearTimeout(pressTimer);
-        pressFired = false;
-        pressTimer = setTimeout(function () {
-          pressFired = true;
-          try { navigator.vibrate && navigator.vibrate(40); } catch (e) {}
-          window.location.href = "/dashboard/?admin=1";
-        }, PRESS_MS);
-      }
-      function endPress() { clearTimeout(pressTimer); pressTimer = null; }
-      function killCtx(e) { e.preventDefault(); return false; }
-
-      function bindOne(el) {
-        if (!el || el.dataset.cgLpBound) return;
-        el.dataset.cgLpBound = "1";
-        el.setAttribute("data-cg-lp", "1");
-        // Belt-and-braces: disable the native image callout via attributes too.
-        el.setAttribute("draggable", "false");
-        if (el.tagName === "IMG") {
-          el.style.webkitTouchCallout = "none";
-          el.style.webkitUserSelect = "none";
-          el.style.userSelect = "none";
-        }
-        el.addEventListener("touchstart", startPress, { passive: true });
-        el.addEventListener("touchend", endPress, { passive: true });
-        el.addEventListener("touchcancel", endPress, { passive: true });
-        el.addEventListener("touchmove", endPress, { passive: true });
-        el.addEventListener("mousedown", startPress);
-        el.addEventListener("mouseup", endPress);
-        el.addEventListener("mouseleave", endPress);
-        el.addEventListener("contextmenu", killCtx);
-        el.addEventListener("dragstart", killCtx);
-      }
-
-      function bindLogoLongPress() {
-        // 1) The logo image (alt="Citizen Gas")
-        document.querySelectorAll('img[alt="Citizen Gas"]').forEach(bindOne);
-        // 2) Any heading whose text is exactly "Citizen Gas" (h1/h2/header brand)
-        document.querySelectorAll("h1,h2,h3").forEach(function (h) {
-          if ((h.textContent || "").trim().toLowerCase() === "citizen gas") bindOne(h);
-        });
-        // 3) Any element explicitly tagged by the bundle as the brand wrapper
-        document.querySelectorAll('[data-cg-brand]').forEach(bindOne);
-      }
-
-      // Re-bind whenever DOM changes (React re-renders).
-      var mo = new MutationObserver(bindLogoLongPress);
-      window.addEventListener("DOMContentLoaded", function () {
-        bindLogoLongPress();
-        mo.observe(document.body, { childList: true, subtree: true });
+      adminBtn.addEventListener("click", function () {
+        window.location.href = "/dashboard/?admin=1";
       });
 
-      // Global safety net: if the user long-presses anywhere within the top 25% of
-      // the screen on the engineer sign-in page (where the logo lives) we still trigger.
-      // This survives even if React replaces the logo node mid-press.
-      (function topZoneFallback() {
-        var zoneTimer = null;
-        function inLogoZone(touch) {
-          var y = (touch.clientY != null ? touch.clientY : touch.pageY);
-          return y > 0 && y < (window.innerHeight * 0.28);
-        }
-        document.addEventListener("touchstart", function (ev) {
-          if (!ev.touches || !ev.touches.length) return;
-          if (!inLogoZone(ev.touches[0])) return;
-          // Only arm fallback when no specific bound element handled it.
-          if (ev.target && ev.target.closest && ev.target.closest('[data-cg-lp]')) return;
-          // Engineer sign-in page only (no /dashboard/)
-          if (location.pathname.indexOf("/dashboard") === 0) return;
-          clearTimeout(zoneTimer);
-          zoneTimer = setTimeout(function () {
-            try { navigator.vibrate && navigator.vibrate(40); } catch (e) {}
-            window.location.href = "/dashboard/?admin=1";
-          }, PRESS_MS);
-        }, { passive: true });
-        ["touchend","touchcancel","touchmove","scroll"].forEach(function (evt) {
-          document.addEventListener(evt, function () { clearTimeout(zoneTimer); zoneTimer = null; }, { passive: true });
-        });
-      })();
+      function isSignedIn() {
+        try {
+          var raw = localStorage.getItem("citizenGas.engineerProfile");
+          if (!raw) return false;
+          var p = JSON.parse(raw);
+          // Treat any populated profile as "signed in".
+          return !!(p && (p.fullName || p.gasSafeRegNo || p.licenceNo));
+        } catch (e) { return false; }
+      }
+
+      function refreshAdminBtn() {
+        adminBtn.style.display = isSignedIn() ? "inline-flex" : "none";
+      }
+
+      window.addEventListener("DOMContentLoaded", refreshAdminBtn);
+      // Re-evaluate whenever the React app updates the DOM (covers sign-in completion).
+      var adminMo = new MutationObserver(refreshAdminBtn);
+      window.addEventListener("DOMContentLoaded", function () {
+        adminMo.observe(document.body, { childList: true, subtree: true });
+      });
+      // Also listen for storage changes from other tabs.
+      window.addEventListener("storage", refreshAdminBtn);
     })();
     </script>
   </body>
