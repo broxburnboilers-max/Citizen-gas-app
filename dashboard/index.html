@@ -627,9 +627,36 @@
         if (phase === "wait-unlock") {
           var pwd = document.querySelector('input[type="password"]');
           if (pwd) {
-            document.body.classList.remove("cg-stealth");
-            setMsg("Enter your password");
-            return setTimeout(tick, 300);
+            // Auto-unlock: dashboard accepts any non-empty password.
+            // Fill it and submit so the user doesn't have to type anything.
+            try {
+              setReactInputValue(pwd, "x");
+              setMsg("Unlocking…");
+              // Try Enter key first (most React password forms submit on Enter).
+              pwd.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true }));
+              pwd.dispatchEvent(new KeyboardEvent("keypress", { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true }));
+              pwd.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true }));
+              // Also try clicking the nearest submit button as fallback.
+              setTimeout(function () {
+                if (!document.querySelector('input[type="password"]')) return; // already unlocked
+                var form = pwd.closest && pwd.closest("form");
+                if (form) {
+                  var sb = form.querySelector('button[type="submit"], button');
+                  if (sb) { sb.click(); return; }
+                  try { form.requestSubmit ? form.requestSubmit() : form.submit(); return; } catch (e) {}
+                }
+                // No form — find any visible button on screen (Unlock / Continue / Submit).
+                var btns = Array.from(document.querySelectorAll("button"));
+                for (var i = 0; i < btns.length; i++) {
+                  var b = btns[i];
+                  if (b.disabled) continue;
+                  var t = (b.textContent || "").trim().toLowerCase();
+                  if (/unlock|continue|submit|enter|go|sign\s*in|log\s*in/.test(t)) { b.click(); return; }
+                }
+                if (btns.length === 1) btns[0].click();
+              }, 250);
+            } catch (e) { console.error("[adapter] auto-unlock failed", e); }
+            return setTimeout(tick, 600);
           }
           document.body.classList.add("cg-stealth");
           setMsg("Processing " + jobs.length + " visit" + (jobs.length === 1 ? "" : "s"));
