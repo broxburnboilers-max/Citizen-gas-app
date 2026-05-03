@@ -42,17 +42,15 @@
       }
       #root textarea, #root input { background:#0e1a20 !important; color: var(--cg-text) !important; border-color: var(--cg-card-border) !important; }
 
-      #cg-splash { position: fixed; inset:0; z-index:99999; background: var(--cg-bg);
-        display:flex; flex-direction:column; align-items:center; justify-content:center; color: var(--cg-text);
-        transition: opacity .35s ease; }
-      #cg-splash.hide { opacity:0; pointer-events:none; }
-      #cg-splash .ring { width:48px; height:48px; border-radius:50%;
-        border:3px solid rgba(242,104,42,0.22); border-top-color: var(--cg-primary);
-        animation: cg-spin .9s linear infinite; margin-bottom:18px; }
-      #cg-splash .title { font-size:20px; font-weight:700; margin-bottom:4px; }
-      #cg-splash .msg { font-size:15px; color: var(--cg-muted); }
-      @keyframes cg-spin { to { transform: rotate(360deg); } }
+      /* Stealth mode: hide React app while the splash overlay is showing during queue processing. */
       body.cg-stealth #root { opacity: 0; pointer-events: none; }
+
+      /* Home-screen tile filter — hide tiles whose label is not "New Job" or "Records".
+         JS adds .cg-hide-tile to each unwanted tile after the dashboard renders.
+         During queue processing we add .cg-show-all-tiles to the body to temporarily reveal them
+         so the auto-clicker can find GSC Email. */
+      .cg-hide-tile { display: none !important; }
+      body.cg-show-all-tiles .cg-hide-tile { display: flex !important; }
     </style>
 
     <script type="module" crossorigin src="./assets/index-99y8mxxr.js"></script>
@@ -61,12 +59,66 @@
     <div id="root"></div>
     <!-- Splash injected by JS only when queue/prefill is present. -->
 
+    <!-- Tile filter: hide everything on the home screen except New Job and Records. -->
+    <script>
+    (function () {
+      var ALLOW = ["new job", "records"];
+
+      function applyTileFilter() {
+        // The home screen has a grid of round tiles, each labelled by a text node
+        // ("New Job", "Records", "Email Import", "GI Email", …). Walk every text-bearing
+        // descendant of #root and find ones whose trimmed lowercase text exactly matches
+        // a known tile label.
+        var root = document.getElementById("root");
+        if (!root) return;
+        var labels = root.querySelectorAll("div, span, p, h2, h3, h4");
+        labels.forEach(function (el) {
+          if (el.children.length > 0) return; // only leaf text nodes
+          var t = (el.textContent || "").trim().toLowerCase();
+          if (!t) return;
+          // Climb to the tile container: an ancestor whose siblings include other tiles.
+          // Heuristic: the tile container is 2-4 levels up from the label and has
+          // a parent with multiple similar children.
+          var tile = el;
+          for (var i = 0; i < 5; i++) {
+            if (!tile.parentElement) break;
+            var p = tile.parentElement;
+            if (p.children.length >= 2) { // looks like a grid row/parent
+              // Stop when the tile sits inside something that has multiple siblings.
+              if (p.children.length >= 3 || (p.children.length >= 2 && i > 0)) break;
+            }
+            tile = p;
+          }
+          // Only treat short labels as tile labels (not full sentences / paragraphs)
+          if (t.length > 24) return;
+          // Known dashboard tile labels we want to hide:
+          var knownTiles = ["new job", "records", "email import", "gi email", "gw email",
+                            "gsc email", "bs email", "reports"];
+          if (knownTiles.indexOf(t) === -1) return;
+          if (ALLOW.indexOf(t) !== -1) {
+            tile.classList.remove("cg-hide-tile");
+          } else {
+            tile.classList.add("cg-hide-tile");
+          }
+        });
+      }
+
+      // Re-apply on every DOM change (React re-renders).
+      var mo = new MutationObserver(function () { applyTileFilter(); });
+      window.addEventListener("DOMContentLoaded", function () {
+        applyTileFilter();
+        mo.observe(document.body, { childList: true, subtree: true });
+      });
+    })();
+    </script>
+
     <script>
     (function () {
       var splash = null, msgEl = null;
       function setMsg(t) { if (msgEl) msgEl.textContent = t; }
       function hideSplashShowApp() {
         document.body.classList.remove("cg-stealth");
+        document.body.classList.remove("cg-show-all-tiles");
         if (splash) { splash.style.opacity = "0"; splash.style.pointerEvents = "none"; setTimeout(function(){ splash.remove(); }, 400); }
       }
       function showSplash() {
@@ -80,6 +132,8 @@
           + '</div>';
         document.body.insertAdjacentHTML("beforeend", html);
         document.body.classList.add("cg-stealth");
+        // Reveal hidden tiles so the queue auto-clicker can find GSC Email etc.
+        document.body.classList.add("cg-show-all-tiles");
         splash = document.getElementById("cg-splash");
         msgEl  = document.getElementById("cg-msg");
       }
