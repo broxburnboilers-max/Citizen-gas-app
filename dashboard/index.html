@@ -67,12 +67,25 @@
 
     <script>
     (function () {
-      var splash = document.getElementById("cg-splash");
-      var msgEl  = document.getElementById("cg-msg");
+      var splash = null, msgEl = null;
       function setMsg(t) { if (msgEl) msgEl.textContent = t; }
       function hideSplashShowApp() {
         document.body.classList.remove("cg-stealth");
-        if (splash) { splash.classList.add("hide"); setTimeout(function(){ splash.remove(); }, 400); }
+        if (splash) { splash.style.opacity = "0"; splash.style.pointerEvents = "none"; setTimeout(function(){ splash.remove(); }, 400); }
+      }
+      function showSplash() {
+        if (splash) return;
+        var html =
+          '<div id="cg-splash" style="position:fixed;inset:0;z-index:99999;background:#18252D;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#f5f5f5;transition:opacity .35s ease;">'
+          + '<style>@keyframes cg-spin{to{transform:rotate(360deg);}}</style>'
+          + '<div style="width:48px;height:48px;border-radius:50%;border:3px solid rgba(242,104,42,0.22);border-top-color:#F2682A;animation:cg-spin .9s linear infinite;margin-bottom:18px;"></div>'
+          + '<div style="font-size:20px;font-weight:700;margin-bottom:4px;">Creating certificates…</div>'
+          + '<div id="cg-msg" style="font-size:15px;color:#b8c2c8;">Preparing your data</div>'
+          + '</div>';
+        document.body.insertAdjacentHTML("beforeend", html);
+        document.body.classList.add("cg-stealth");
+        splash = document.getElementById("cg-splash");
+        msgEl  = document.getElementById("cg-msg");
       }
 
       // ── Decide intent ─────────────────────────────────────────────────────
@@ -97,7 +110,11 @@
         }
       } catch (e) { console.error("intent capture failed", e); }
 
-      if (!queue || queue.length === 0) { hideSplashShowApp(); return; }
+      // No work to do? Let the dashboard render normally with the password gate.
+      if (!queue || queue.length === 0) { return; }
+
+      // We have work — show the splash now.
+      showSplash();
 
       // ── Translate Citizen Gas body → GSC parser template ──────────────────
       function getEng(body) { var m = body.match(/^Engineer:\s*(.+)$/m); return m ? m[1].trim() : ""; }

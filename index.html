@@ -109,7 +109,9 @@
       var adminBtn = document.getElementById("cg-admin-btn");
 
       adminBtn.addEventListener("click", function () {
-        window.location.href = "/dashboard/?admin=1";
+        // Plain navigation — dashboard handles password gate normally.
+        // Queue (if any) will be processed inside the dashboard via a button.
+        window.location.href = "/dashboard/";
       });
 
       function isSignedIn() {
