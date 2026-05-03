@@ -143,54 +143,66 @@
     })();
     </script>
 
-    <!-- Tile filter: hide everything on the home screen except New Job and Records. -->
+    <!-- UI simplification: hide unwanted tiles (home) and unwanted rows (records). -->
     <script>
     (function () {
-      var ALLOW = ["new job", "records"];
+      // Home-screen tiles: keep only "New Job" and "Records".
+      var HOME_ALLOW = ["new job", "records"];
+      var HOME_KNOWN = ["new job", "records", "email import", "gi email", "gw email",
+                        "gsc email", "bs email", "reports"];
 
-      function applyTileFilter() {
-        // The home screen has a grid of round tiles, each labelled by a text node
-        // ("New Job", "Records", "Email Import", "GI Email", …). Walk every text-bearing
-        // descendant of #root and find ones whose trimmed lowercase text exactly matches
-        // a known tile label.
+      // Records page rows: keep only "Gas Safety Certificates".
+      // (Transfer Records / Export / Import sit below the row list and stay visible.)
+      var RECORDS_KEEP = ["gas safety certificates"];
+      var RECORDS_KILL = ["reminders due", "boiler service records", "gas works",
+                          "gas isolation", "invoices", "quotes", "account reports",
+                          "yearly reports", "yearly report"];
+
+      function climbToTile(el) {
+        var tile = el;
+        for (var i = 0; i < 5; i++) {
+          if (!tile.parentElement) break;
+          var p = tile.parentElement;
+          if (p.children.length >= 2) {
+            if (p.children.length >= 3 || (p.children.length >= 2 && i > 0)) break;
+          }
+          tile = p;
+        }
+        return tile;
+      }
+
+      function applyFilters() {
         var root = document.getElementById("root");
         if (!root) return;
         var labels = root.querySelectorAll("div, span, p, h2, h3, h4");
         labels.forEach(function (el) {
-          if (el.children.length > 0) return; // only leaf text nodes
+          if (el.children.length > 0) return; // leaf text nodes only
           var t = (el.textContent || "").trim().toLowerCase();
-          if (!t) return;
-          // Climb to the tile container: an ancestor whose siblings include other tiles.
-          // Heuristic: the tile container is 2-4 levels up from the label and has
-          // a parent with multiple similar children.
-          var tile = el;
-          for (var i = 0; i < 5; i++) {
-            if (!tile.parentElement) break;
-            var p = tile.parentElement;
-            if (p.children.length >= 2) { // looks like a grid row/parent
-              // Stop when the tile sits inside something that has multiple siblings.
-              if (p.children.length >= 3 || (p.children.length >= 2 && i > 0)) break;
-            }
-            tile = p;
+          if (!t || t.length > 30) return;
+
+          // Home-screen tiles
+          if (HOME_KNOWN.indexOf(t) !== -1) {
+            var tile = climbToTile(el);
+            if (HOME_ALLOW.indexOf(t) !== -1) tile.classList.remove("cg-hide-tile");
+            else tile.classList.add("cg-hide-tile");
+            return;
           }
-          // Only treat short labels as tile labels (not full sentences / paragraphs)
-          if (t.length > 24) return;
-          // Known dashboard tile labels we want to hide:
-          var knownTiles = ["new job", "records", "email import", "gi email", "gw email",
-                            "gsc email", "bs email", "reports"];
-          if (knownTiles.indexOf(t) === -1) return;
-          if (ALLOW.indexOf(t) !== -1) {
-            tile.classList.remove("cg-hide-tile");
-          } else {
-            tile.classList.add("cg-hide-tile");
+
+          // Records-page rows
+          if (RECORDS_KILL.indexOf(t) !== -1) {
+            climbToTile(el).classList.add("cg-hide-tile");
+            return;
+          }
+          if (RECORDS_KEEP.indexOf(t) !== -1) {
+            climbToTile(el).classList.remove("cg-hide-tile");
+            return;
           }
         });
       }
 
-      // Re-apply on every DOM change (React re-renders).
-      var mo = new MutationObserver(function () { applyTileFilter(); });
+      var mo = new MutationObserver(function () { applyFilters(); });
       window.addEventListener("DOMContentLoaded", function () {
-        applyTileFilter();
+        applyFilters();
         mo.observe(document.body, { childList: true, subtree: true });
       });
     })();
