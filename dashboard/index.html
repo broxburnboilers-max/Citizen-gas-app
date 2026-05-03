@@ -213,6 +213,23 @@
         background-color: #ffffff !important;
         color: #000 !important;
       }
+      /* Undo the blue→orange recolor inside the certificate so the bands render in
+         the original blue (the look the user wants back). The bundle paints these
+         bands with rgb(42, 82, 212) inline. */
+      body.cg-on-cert .cg-cert-doc [style*="background: rgb(42, 82, 212)"],
+      body.cg-on-cert .cg-cert-doc [style*="background:rgb(42, 82, 212)"],
+      body.cg-on-cert .cg-cert-doc [style*="background-color: rgb(42, 82, 212)"],
+      body.cg-on-cert .cg-cert-doc [style*="background-color:rgb(42, 82, 212)"] {
+        background: rgb(42, 82, 212) !important;
+        background-color: rgb(42, 82, 212) !important;
+        color: #ffffff !important;
+      }
+      body.cg-on-cert .cg-cert-doc [style*="rgb(26, 58, 143)"],
+      body.cg-on-cert .cg-cert-doc [style*="rgb(26, 59, 191)"] {
+        background: rgb(26, 58, 143) !important;
+        background-color: rgb(26, 58, 143) !important;
+        color: #ffffff !important;
+      }
     </style>
 
     <script type="module" crossorigin src="./assets/index-99y8mxxr.js"></script>
@@ -505,6 +522,12 @@
 
         var lines = [];
         var engineerName = getEng(citizenBody);
+        // Emit the Engineer line at the very top so the bundle's __pickEng helper
+        // picks the wizard's engineer name instead of the hardcoded fallback.
+        if (engineerName) {
+          lines.push("Engineer: " + engineerName);
+          lines.push("");
+        }
 
         props.forEach(function (block, pi) {
           var n = pi + 1;
@@ -670,6 +693,19 @@
           return ids;
         } catch (e) { return {}; }
       }
+      // Read the engineer profile saved by the wizard (citizenGas.engineerProfile)
+      // so we can stamp the real engineer details onto each new certificate record.
+      function readEngineerProfile() {
+        try {
+          var p = JSON.parse(localStorage.getItem("citizenGas.engineerProfile") || "{}");
+          return {
+            fullName: (p.fullName || "").trim(),
+            gasSafeRegNo: (p.gasSafeRegNo || "").trim(),
+            licenceNo: (p.licenceNo || "").trim()
+          };
+        } catch (e) { return { fullName: "", gasSafeRegNo: "", licenceNo: "" }; }
+      }
+
       function tagNewRecordsIntoFolder(beforeIds, folderName) {
         try {
           var records = JSON.parse(localStorage.getItem("gsc_records") || "[]");
@@ -677,10 +713,26 @@
           var existing = folders.find(function (f) { return f && f.name === folderName; });
           var folderId = existing ? existing.id : ("f_" + Date.now());
           if (!existing) { folders.push({ id: folderId, name: folderName }); localStorage.setItem("gsc_folders", JSON.stringify(folders)); }
+          var prof = readEngineerProfile();
           var changed = false;
           records.forEach(function (r) {
             var key = r.savedAt || r.id || JSON.stringify(r).slice(0,80);
-            if (!beforeIds[key] && !r.gscFolder) { r.gscFolder = folderId; changed = true; }
+            if (!beforeIds[key]) {
+              if (!r.gscFolder) { r.gscFolder = folderId; changed = true; }
+              // Stamp the wizard's engineer details onto the new record so the
+              // certificate shows them instead of the bundle's hardcoded fallbacks.
+              if (prof.fullName) {
+                if (r.signerName !== prof.fullName) { r.signerName = prof.fullName; changed = true; }
+                if (r.engineerName !== prof.fullName) { r.engineerName = prof.fullName; changed = true; }
+                if (r.issuedBy !== prof.fullName) { r.issuedBy = prof.fullName; changed = true; }
+              }
+              if (prof.gasSafeRegNo) {
+                if (r.gasSafeNo !== prof.gasSafeRegNo) { r.gasSafeNo = prof.gasSafeRegNo; changed = true; }
+              }
+              if (prof.licenceNo) {
+                if (r.engineerId !== prof.licenceNo) { r.engineerId = prof.licenceNo; changed = true; }
+              }
+            }
           });
           if (changed) localStorage.setItem("gsc_records", JSON.stringify(records));
         } catch (e) { console.error("[adapter] folder tag failed", e); }
