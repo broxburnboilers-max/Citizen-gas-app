@@ -11,5 +11,165 @@
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Citizen Gas -> Dashboard auto-import adapter
+         (Outside the React bundle. Does not modify parser, layout, or auto-populate.) -->
+    <script>
+    (function () {
+      // 1) Capture ?prefill from URL once, stash for later, clean URL.
+      try {
+        var u = new URL(window.location.href);
+        var pre = u.searchParams.get("prefill");
+        if (pre) {
+          var raw;
+          try { raw = decodeURIComponent(escape(atob(decodeURIComponent(pre)))); }
+          catch (e) { try { raw = decodeURIComponent(pre); } catch (e2) { raw = pre; } }
+          if (raw && raw.trim()) {
+            sessionStorage.setItem("__citizenGasPrefill", raw);
+            sessionStorage.setItem("__citizenGasPrefillStamp", String(Date.now()));
+          }
+          u.searchParams.delete("prefill");
+          history.replaceState(null, "", u.pathname + (u.search || "") + (u.hash || ""));
+        }
+      } catch (e) { console.error("prefill capture failed", e); }
+
+      // Helpers ----------------------------------------------------------------
+      function setReactInputValue(el, value) {
+        var proto = el.tagName === "TEXTAREA"
+          ? window.HTMLTextAreaElement.prototype
+          : window.HTMLInputElement.prototype;
+        var setter = Object.getOwnPropertyDescriptor(proto, "value").set;
+        setter.call(el, value);
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
+      function findByText(tag, text) {
+        var nodes = document.querySelectorAll(tag);
+        for (var i = 0; i < nodes.length; i++) {
+          var t = (nodes[i].textContent || "").trim();
+          if (t === text || t.indexOf(text) >= 0) return nodes[i];
+        }
+        return null;
+      }
+
+      function todayFolderName() {
+        var d = new Date();
+        var dd = String(d.getDate()).padStart(2, "0");
+        var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        return dd + " " + months[d.getMonth()] + " " + d.getFullYear();
+      }
+
+      function tagNewRecordsIntoTodayFolder(beforeIds) {
+        try {
+          var records = JSON.parse(localStorage.getItem("gsc_records") || "[]");
+          var folders = JSON.parse(localStorage.getItem("gsc_folders") || "[]");
+          var name = todayFolderName();
+          var existing = folders.find(function (f) { return f && f.name === name; });
+          var folderId;
+          if (existing) {
+            folderId = existing.id;
+          } else {
+            folderId = "f_" + Date.now();
+            folders.push({ id: folderId, name: name });
+            localStorage.setItem("gsc_folders", JSON.stringify(folders));
+          }
+          var changed = false;
+          records.forEach(function (r) {
+            var key = (r.savedAt || r.id || JSON.stringify(r).slice(0, 60));
+            if (!beforeIds[key] && !r.gscFolder) {
+              r.gscFolder = folderId;
+              changed = true;
+            }
+          });
+          if (changed) {
+            localStorage.setItem("gsc_records", JSON.stringify(records));
+          }
+          console.log("[adapter] tagged new records into folder:", name, "id:", folderId);
+        } catch (e) { console.error("[adapter] folder tag failed", e); }
+      }
+
+      function snapshotRecordIds() {
+        try {
+          var arr = JSON.parse(localStorage.getItem("gsc_records") || "[]");
+          var ids = {};
+          arr.forEach(function (r) {
+            var key = (r.savedAt || r.id || JSON.stringify(r).slice(0, 60));
+            ids[key] = true;
+          });
+          return ids;
+        } catch (e) { return {}; }
+      }
+
+      // Main flow --------------------------------------------------------------
+      var ATTEMPT_BUDGET_MS = 30000; // 30s
+      var startedAt = Date.now();
+      var phase = "wait-home";
+      var beforeIds = null;
+
+      function tick() {
+        if (Date.now() - startedAt > ATTEMPT_BUDGET_MS) return;
+
+        var prefill = sessionStorage.getItem("__citizenGasPrefill");
+        if (!prefill) return;
+
+        if (phase === "wait-home") {
+          var gscTile = findByText("button", "GSC Email") || findByText("div", "GSC Email");
+          if (gscTile) {
+            // Climb to clickable ancestor
+            var clickTarget = gscTile;
+            for (var i = 0; i < 5; i++) {
+              if (clickTarget && (clickTarget.onclick || clickTarget.tagName === "BUTTON")) break;
+              clickTarget = clickTarget && clickTarget.parentElement;
+            }
+            (clickTarget || gscTile).click();
+            phase = "wait-textarea";
+            beforeIds = snapshotRecordIds();
+            console.log("[adapter] clicked GSC Email tile");
+          }
+          return setTimeout(tick, 250);
+        }
+
+        if (phase === "wait-textarea") {
+          var ta = document.querySelector('textarea[placeholder*="Paste"], textarea');
+          if (ta) {
+            setReactInputValue(ta, prefill);
+            console.log("[adapter] filled textarea (" + prefill.length + " chars)");
+            phase = "wait-parse";
+          }
+          return setTimeout(tick, 250);
+        }
+
+        if (phase === "wait-parse") {
+          var btn = findByText("button", "Parse Email") || findByText("button", "Parse");
+          if (btn && !btn.disabled) {
+            btn.click();
+            console.log("[adapter] clicked Parse Email");
+            phase = "wait-records";
+            sessionStorage.removeItem("__citizenGasPrefill");
+          }
+          return setTimeout(tick, 250);
+        }
+
+        if (phase === "wait-records") {
+          // Wait for parser to actually write to localStorage, then tag.
+          var afterIds = snapshotRecordIds();
+          var added = false;
+          for (var k in afterIds) { if (!beforeIds[k]) { added = true; break; } }
+          if (added) {
+            tagNewRecordsIntoTodayFolder(beforeIds);
+            phase = "done";
+            return;
+          }
+          return setTimeout(tick, 300);
+        }
+      }
+
+      // Start polling once DOM is ready and bundle has had a moment to mount.
+      window.addEventListener("DOMContentLoaded", function () {
+        setTimeout(tick, 500);
+      });
+    })();
+    </script>
   </body>
 </html>
