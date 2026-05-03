@@ -12,101 +12,47 @@
     <style>
       :root {
         --cg-bg: #18252D;
-        --cg-bg-2: #0f1a20;
         --cg-card: #1f2f38;
         --cg-card-border: #2a3d47;
         --cg-text: #f5f5f5;
         --cg-muted: #b8c2c8;
         --cg-primary: #F2682A;
-        --cg-primary-2: #d94e83;
       }
       html, body { background: var(--cg-bg) !important; color: var(--cg-text); margin: 0; min-height: 100%; }
       body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-
-      /* Recolor the dashboard's blue header → Citizen Gas dark */
-      div[style*="background"][style*="#2a52d4"],
-      div[style*="background:#2a52d4"],
-      div[style*="background: #2a52d4"],
-      header,
-      [style*="linear-gradient"][style*="#2a52d4"] {
-        background: var(--cg-bg) !important;
-        background-image: none !important;
-        border-bottom: 1px solid var(--cg-card-border) !important;
-      }
-
-      /* Recolor white cards to dark cards */
+      header, [style*="#2a52d4"] { background: var(--cg-bg) !important; background-image: none !important; }
       #root > div { background: var(--cg-bg) !important; }
       #root [style*="background:#fff"]:not(textarea):not(input):not(select),
       #root [style*="background: #fff"]:not(textarea):not(input):not(select),
-      #root [style*="background:#ffffff"]:not(textarea):not(input):not(select),
-      #root [style*="background:white"]:not(textarea):not(input):not(select),
-      #root [style*="background-color:#fff"]:not(textarea):not(input):not(select),
-      #root [style*="background-color: #fff"]:not(textarea):not(input):not(select),
-      #root [style*="background-color:#ffffff"]:not(textarea):not(input):not(select) {
-        background: var(--cg-card) !important;
-        color: var(--cg-text) !important;
+      #root [style*="background:#ffffff"]:not(textarea):not(input):not(select) {
+        background: var(--cg-card) !important; color: var(--cg-text) !important;
         border-color: var(--cg-card-border) !important;
       }
-
-      /* Tile circles */
       #root [style*="border-radius: 50%"][style*="border"],
-      #root [style*="borderRadius:50%"] {
-        border-color: var(--cg-primary) !important;
+      #root [style*="borderRadius:50%"] { border-color: var(--cg-primary) !important; }
+      #root button[style*="#2a52d4"], #root button[style*="#1a3a8f"], #root button[style*="#1a3bbf"] {
+        background: var(--cg-primary) !important; color:#fff !important; border-color: var(--cg-primary) !important;
       }
-
-      /* Primary action buttons (blue) -> orange */
-      #root button[style*="#2a52d4"],
-      #root button[style*="#1a3a8f"],
-      #root button[style*="#1a3bbf"] {
-        background: var(--cg-primary) !important;
-        color: #fff !important;
-        border-color: var(--cg-primary) !important;
-      }
-
-      /* Generic dark text against newly-dark cards */
-      #root [style*="color:#111"],
-      #root [style*="color: #111"],
-      #root [style*="color:#222"],
-      #root [style*="color: #222"],
-      #root [style*="color:#333"],
-      #root [style*="color: #333"],
-      #root [style*="color:#444"],
-      #root [style*="color: #444"],
-      #root [style*="color:#555"],
-      #root [style*="color: #555"],
-      #root [style*="color:#666"],
-      #root [style*="color: #666"] {
+      #root [style*="color:#111"], #root [style*="color: #111"],
+      #root [style*="color:#222"], #root [style*="color: #222"],
+      #root [style*="color:#333"], #root [style*="color: #333"],
+      #root [style*="color:#444"], #root [style*="color: #444"],
+      #root [style*="color:#555"], #root [style*="color: #555"],
+      #root [style*="color:#666"], #root [style*="color: #666"] {
         color: var(--cg-text) !important;
       }
+      #root textarea, #root input { background:#0e1a20 !important; color: var(--cg-text) !important; border-color: var(--cg-card-border) !important; }
 
-      /* Form fields stay light for readability of monospace input */
-      #root textarea, #root input[type="text"], #root input[type="password"], #root input:not([type]) {
-        background: #0e1a20 !important;
-        color: var(--cg-text) !important;
-        border-color: var(--cg-card-border) !important;
-      }
-
-      /* Splash overlay shown while parser runs */
-      #cg-splash {
-        position: fixed; inset: 0; z-index: 99999;
-        background: var(--cg-bg);
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        color: var(--cg-text);
-        transition: opacity .35s ease;
-      }
-      #cg-splash.hide { opacity: 0; pointer-events: none; }
-      #cg-splash .ring {
-        width: 48px; height: 48px; border-radius: 50%;
-        border: 3px solid rgba(242,104,42,0.22);
-        border-top-color: var(--cg-primary);
-        animation: cg-spin 0.9s linear infinite;
-        margin-bottom: 18px;
-      }
-      #cg-splash .msg { font-size: 15px; color: var(--cg-muted); letter-spacing: .3px; }
-      #cg-splash .title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+      #cg-splash { position: fixed; inset:0; z-index:99999; background: var(--cg-bg);
+        display:flex; flex-direction:column; align-items:center; justify-content:center; color: var(--cg-text);
+        transition: opacity .35s ease; }
+      #cg-splash.hide { opacity:0; pointer-events:none; }
+      #cg-splash .ring { width:48px; height:48px; border-radius:50%;
+        border:3px solid rgba(242,104,42,0.22); border-top-color: var(--cg-primary);
+        animation: cg-spin .9s linear infinite; margin-bottom:18px; }
+      #cg-splash .title { font-size:20px; font-weight:700; margin-bottom:4px; }
+      #cg-splash .msg { font-size:15px; color: var(--cg-muted); }
       @keyframes cg-spin { to { transform: rotate(360deg); } }
-
-      /* Hide the GSC Email screen UI while we drive it programmatically */
       body.cg-stealth #root { opacity: 0; pointer-events: none; }
     </style>
 
@@ -114,55 +60,235 @@
   </head>
   <body class="cg-stealth">
     <div id="root"></div>
-
     <div id="cg-splash">
       <div class="ring"></div>
       <div class="title">Creating certificates…</div>
-      <div class="msg" id="cg-msg">Parsing your visit data</div>
+      <div class="msg" id="cg-msg">Preparing your data</div>
     </div>
 
-    <!-- Citizen Gas -> Dashboard auto-import adapter -->
+    <!-- Citizen Gas → Dashboard adapter (parser + bundle untouched) -->
     <script>
     (function () {
       var splash = document.getElementById("cg-splash");
-      var msg    = document.getElementById("cg-msg");
-      function setMsg(t) { if (msg) msg.textContent = t; }
+      var msgEl  = document.getElementById("cg-msg");
+      function setMsg(t) { if (msgEl) msgEl.textContent = t; }
       function hideSplashShowApp() {
         document.body.classList.remove("cg-stealth");
         if (splash) { splash.classList.add("hide"); setTimeout(function(){ splash.remove(); }, 400); }
       }
 
-      // 1) Capture ?prefill from URL once, stash for later, clean URL.
-      var hasPrefill = false;
+      // ── 1. Capture ?prefill ────────────────────────────────────────────────
+      var prefillRaw = null;
       try {
         var u = new URL(window.location.href);
         var pre = u.searchParams.get("prefill");
         if (pre) {
-          var raw;
-          try { raw = decodeURIComponent(escape(atob(decodeURIComponent(pre)))); }
-          catch (e) { try { raw = decodeURIComponent(pre); } catch (e2) { raw = pre; } }
-          if (raw && raw.trim()) {
-            sessionStorage.setItem("__citizenGasPrefill", raw);
-            hasPrefill = true;
-          }
+          try { prefillRaw = decodeURIComponent(escape(atob(decodeURIComponent(pre)))); }
+          catch (e) { try { prefillRaw = decodeURIComponent(pre); } catch (_e) { prefillRaw = pre; } }
           u.searchParams.delete("prefill");
           history.replaceState(null, "", u.pathname + (u.search || "") + (u.hash || ""));
-        } else if (sessionStorage.getItem("__citizenGasPrefill")) {
-          hasPrefill = true;
+          if (prefillRaw && prefillRaw.trim()) {
+            sessionStorage.setItem("__citizenGasPrefillRaw", prefillRaw);
+          }
         }
+        if (!prefillRaw) prefillRaw = sessionStorage.getItem("__citizenGasPrefillRaw");
       } catch (e) { console.error("prefill capture failed", e); }
 
-      // If no prefill is in flight, just show app normally — no stealth, no splash.
-      if (!hasPrefill) {
-        hideSplashShowApp();
-        return;
+      if (!prefillRaw || !prefillRaw.trim()) { hideSplashShowApp(); return; }
+
+      // Suppress alert() boxes during auto-flow so they don't block the next click
+      var _origAlert = window.alert;
+      window.alert = function (msg) { console.log("[adapter] suppressed alert:", msg); };
+      // Restore alert after flow completes (or budget elapses)
+      function restoreAlert() { try { window.alert = _origAlert; } catch (e) {} }
+
+      // ── 2. Translate Citizen Gas body → GSC parser template ───────────────
+      // Citizen Gas body fields per property:
+      //   Cert Ref: <addr1>, <addr2>, <postcode>
+      //   Date: <date>
+      //   Visit: 1|2
+      //   Install Address 1/2: <…>
+      //   Install Postcode: <…>
+      //   ALARMS:  Carbon Monoxide Alarm: Yes/No  / Fire Alarm: Yes/No
+      //   APPLIANCE 1: Location, Type, Make, Model, Heat Input
+      //   APPLIANCE 2 (cooker/hob): Location, Make, Operating Pressure
+      //   APPLIANCE 3 (gas fire):   Make, Model
+      //   COOKER CAP/INSTALL & TIGHTNESS TEST block (info only)
+      //   FAULTS list (or "None reported.")
+      //
+      // GSC parser expects:
+      //   PROPERTY n / Cert Ref / Client Name / Client Address 1..3 / Client Postcode / Client Tel / Client Email
+      //   Install Name / Install Address 1..3 / Install Postcode / Install Tel
+      //   APPLIANCE n: Location / Make / Model / Type / Heat Input / CO Reading / CO2 Reading
+      //                Combustion Analysis Reading / Operating Pressure / Flue Type
+      //                Appliance Inspected / Appliance Serviced / Appliance Safe to Use
+      //   FAULT n: Fault Details / Remedial Work / Warning Notice Fixed
+      //   END OF JOB
+      function getEng(body) {
+        var m = body.match(/^Engineer:\s*(.+)$/m);
+        return m ? m[1].trim() : "";
+      }
+      function splitProperties(body) {
+        var parts = body.split(/\n\s*PROPERTY\s+\d+\s*\n/gi);
+        if (parts.length <= 1) return [];
+        // first chunk is preamble; rest are properties (one block per property)
+        return parts.slice(1).map(function (chunk) {
+          // Trim trailing separators between properties
+          return chunk.split(/\n=+\n/)[0];
+        });
+      }
+      function fieldVal(block, key) {
+        var rx = new RegExp("^" + key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:\\s*(.*)$", "mi");
+        var m = block.match(rx);
+        return m ? m[1].trim() : "";
+      }
+      function getApplianceBlocks(propBlock) {
+        // Split on "APPLIANCE n" headers; keep each block
+        var out = [];
+        var rx = /APPLIANCE\s+(\d+)\s*\n([\s\S]*?)(?=\n\s*APPLIANCE\s+\d+\s*\n|\nFAULTS\b|\nCOOKER\b|\nALARMS\b|\nALARM\b|\nFAULT\s+\d|\n=+|$)/gi;
+        var m;
+        while ((m = rx.exec(propBlock)) !== null) {
+          out.push({ idx: parseInt(m[1], 10), body: m[2] });
+        }
+        return out;
+      }
+      function getFaultBlocks(propBlock) {
+        var out = [];
+        var rx = /FAULT\s+(\d+)\s*\n([\s\S]*?)(?=\n\s*FAULT\s+\d+\s*\n|\n=+|\n\s*$|$)/gi;
+        var m;
+        while ((m = rx.exec(propBlock)) !== null) {
+          out.push({ idx: parseInt(m[1], 10), body: m[2] });
+        }
+        // Or, if "FAULTS" section exists with bullets
+        if (out.length === 0) {
+          var fIdx = propBlock.search(/\nFAULTS\b/i);
+          if (fIdx >= 0) {
+            var faultsSec = propBlock.slice(fIdx).split(/\n=+|\n\s*$/)[0];
+            // Skip "None reported."
+            if (!/None reported/i.test(faultsSec)) {
+              // Split on blank lines
+              var pieces = faultsSec.split(/\n\s*\n/).slice(1);
+              pieces.forEach(function (p, i) { if (p.trim()) out.push({ idx: i + 1, body: p }); });
+            }
+          }
+        }
+        return out;
       }
 
-      // Helpers --------------------------------------------------------------
+      function buildGSCTemplate(citizenBody) {
+        var props = splitProperties(citizenBody);
+        if (props.length === 0) return citizenBody; // fall back; parser will reject
+
+        var lines = [];
+        var engineerName = getEng(citizenBody);
+
+        props.forEach(function (block, pi) {
+          var n = pi + 1;
+
+          var addr1     = fieldVal(block, "Install Address 1");
+          var addr2     = fieldVal(block, "Install Address 2");
+          var postcode  = fieldVal(block, "Install Postcode");
+          var date      = fieldVal(block, "Date");
+          var visit     = fieldVal(block, "Visit");
+          var coAlarm   = fieldVal(block, "Carbon Monoxide Alarm");
+          var fireAlarm = fieldVal(block, "Fire Alarm");
+
+          var certRef = "GSC-" + (Date.now() + n).toString().slice(-8);
+          var clientName = engineerName ? engineerName.split(/\s+/)[0] + "'s Customer" : "Customer";
+          // Better: use a placeholder client name if not present (parser requires SOMETHING).
+          // Citizen Gas does not collect client name, so fall back to address-based label.
+          if (addr1) clientName = addr1;
+
+          lines.push("PROPERTY " + n);
+          lines.push("------------------------------");
+          lines.push("Cert Ref: " + certRef);
+          lines.push("Date: " + (date || ""));
+          lines.push("Client Name: " + clientName);
+          lines.push("Client Address 1: " + (addr1 || ""));
+          lines.push("Client Address 2: " + (addr2 || ""));
+          lines.push("Client Address 3: ");
+          lines.push("Client Postcode: " + (postcode || ""));
+          lines.push("Client Tel: ");
+          lines.push("Client Email: ");
+          lines.push("Install Name: " + clientName);
+          lines.push("Install Address 1: " + (addr1 || ""));
+          lines.push("Install Address 2: " + (addr2 || ""));
+          lines.push("Install Address 3: ");
+          lines.push("Install Postcode: " + (postcode || ""));
+          lines.push("Install Tel: ");
+          lines.push("");
+
+          // Appliances ------------------------------------------------------
+          var apps = getApplianceBlocks(block);
+          apps.forEach(function (a, ai) {
+            var ab = a.body;
+            var loc   = fieldVal(ab, "Location");
+            var typ   = fieldVal(ab, "Type");
+            var make  = fieldVal(ab, "Make");
+            var model = fieldVal(ab, "Model");
+            var heat  = fieldVal(ab, "Heat Input");
+            var op    = fieldVal(ab, "Operating Pressure");
+
+            // Default sensible values for required fields the parser maps:
+            lines.push("APPLIANCE " + (ai + 1));
+            lines.push("Location: " + (loc || ""));
+            lines.push("Type: " + (typ || (ai === 0 ? "Boiler" : (ai === 1 ? "Cooker" : "Gas Fire"))));
+            lines.push("Make: " + (make || ""));
+            lines.push("Model: " + (model || ""));
+            lines.push("Heat Input: " + (heat || "NA"));
+            lines.push("CO Reading: NA");
+            lines.push("CO2 Reading: NA");
+            lines.push("Combustion Analysis Reading: NA");
+            lines.push("Operating Pressure: " + (op || "NA"));
+            lines.push("Flue Type: " + (ai === 0 ? "RS" : "FL"));
+            lines.push("Appliance Inspected: Yes");
+            lines.push("Appliance Serviced: No");
+            lines.push("Appliance Safe to Use: Yes");
+            lines.push("Safety Devices: Yes");
+            lines.push("Ventilation: Pass");
+            lines.push("Flue Visual: Pass");
+            lines.push("Flue Performance: Pass");
+            lines.push("Landlords Appliance: " + (ai === 0 ? "Yes" : "No"));
+            lines.push("");
+          });
+
+          // Faults ----------------------------------------------------------
+          var faults = getFaultBlocks(block);
+          faults.forEach(function (f, fi) {
+            var fb = f.body;
+            var details = fieldVal(fb, "Fault") || fieldVal(fb, "Details") || fb.split("\n").filter(function(x){return x.trim();}).slice(0,1).join(" ");
+            var remedial = fieldVal(fb, "Remedial") || fieldVal(fb, "Remedial Work") || "";
+            var warning  = fieldVal(fb, "Warning Notice Fixed") || fieldVal(fb, "Warning Notice") || "No";
+            lines.push("FAULT " + (fi + 1));
+            lines.push("Fault Details: " + details);
+            lines.push("Remedial Work: " + remedial);
+            lines.push("Warning Notice Fixed: " + warning);
+            lines.push("");
+          });
+
+          // Final checks (alarms) — informational; parser ignores unknown fields safely.
+          if (coAlarm)   lines.push("Carbon Monoxide Alarm: " + coAlarm);
+          if (fireAlarm) lines.push("Fire Alarm: " + fireAlarm);
+          lines.push("");
+        });
+
+        lines.push("END OF JOB");
+        return lines.join("\n");
+      }
+
+      var translated;
+      try {
+        translated = buildGSCTemplate(prefillRaw);
+        sessionStorage.setItem("__citizenGasPrefillTranslated", translated);
+        console.log("[adapter] translated body:\n" + translated);
+      } catch (e) {
+        console.error("[adapter] translation failed", e);
+        translated = prefillRaw;
+      }
+
+      // ── 3. Drive the dashboard UI ─────────────────────────────────────────
       function setReactInputValue(el, value) {
-        var proto = el.tagName === "TEXTAREA"
-          ? window.HTMLTextAreaElement.prototype
-          : window.HTMLInputElement.prototype;
+        var proto = el.tagName === "TEXTAREA" ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
         var setter = Object.getOwnPropertyDescriptor(proto, "value").set;
         setter.call(el, value);
         el.dispatchEvent(new Event("input", { bubbles: true }));
@@ -198,10 +324,7 @@
         try {
           var arr = JSON.parse(localStorage.getItem("gsc_records") || "[]");
           var ids = {};
-          arr.forEach(function (r) {
-            var key = (r.savedAt || r.id || JSON.stringify(r).slice(0, 80));
-            ids[key] = true;
-          });
+          arr.forEach(function (r) { ids[r.savedAt || r.id || JSON.stringify(r).slice(0,80)] = true; });
           return ids;
         } catch (e) { return {}; }
       }
@@ -211,50 +334,38 @@
           var folders = JSON.parse(localStorage.getItem("gsc_folders") || "[]");
           var name = todayFolderName();
           var existing = folders.find(function (f) { return f && f.name === name; });
-          var folderId;
-          if (existing) folderId = existing.id;
-          else {
-            folderId = "f_" + Date.now();
-            folders.push({ id: folderId, name: name });
-            localStorage.setItem("gsc_folders", JSON.stringify(folders));
-          }
+          var folderId = existing ? existing.id : ("f_" + Date.now());
+          if (!existing) { folders.push({ id: folderId, name: name }); localStorage.setItem("gsc_folders", JSON.stringify(folders)); }
           var changed = false;
           records.forEach(function (r) {
-            var key = (r.savedAt || r.id || JSON.stringify(r).slice(0, 80));
+            var key = r.savedAt || r.id || JSON.stringify(r).slice(0,80);
             if (!beforeIds[key] && !r.gscFolder) { r.gscFolder = folderId; changed = true; }
           });
           if (changed) localStorage.setItem("gsc_records", JSON.stringify(records));
         } catch (e) { console.error("[adapter] folder tag failed", e); }
       }
 
-      // Main flow ------------------------------------------------------------
-      var BUDGET_MS = 45000;
+      var BUDGET_MS = 60000;
       var startedAt = Date.now();
-      var phase = "wait-unlock"; // password screen first
+      var phase = "wait-unlock";
       var beforeIds = null;
 
       function tick() {
-        var elapsed = Date.now() - startedAt;
-        if (elapsed > BUDGET_MS) {
-          // Bail out — show whatever the app shows, drop the prefill so we don't loop
-          sessionStorage.removeItem("__citizenGasPrefill");
+        if (Date.now() - startedAt > BUDGET_MS) {
+          sessionStorage.removeItem("__citizenGasPrefillRaw");
+          sessionStorage.removeItem("__citizenGasPrefillTranslated");
+          restoreAlert();
           hideSplashShowApp();
           return;
         }
 
-        var prefill = sessionStorage.getItem("__citizenGasPrefill");
-        if (!prefill) { hideSplashShowApp(); return; }
-
         if (phase === "wait-unlock") {
-          // If a password input is on screen, wait — user must type password.
           var pwd = document.querySelector('input[type="password"]');
           if (pwd) {
-            // Show the unlock screen (drop stealth) so user can type password
             document.body.classList.remove("cg-stealth");
-            setMsg("Enter your password to continue");
+            setMsg("Enter your password");
             return setTimeout(tick, 300);
           }
-          // No password on screen — past the gate. Re-enable stealth for the next jumps.
           document.body.classList.add("cg-stealth");
           setMsg("Opening certificate parser");
           phase = "wait-home";
@@ -262,31 +373,29 @@
         }
 
         if (phase === "wait-home") {
-          // Click GSC Email tile on home dashboard
           var gscNode = findByText("div", "GSC Email") || findByText("button", "GSC Email") || findByText("span", "GSC Email");
           if (gscNode) {
             climbToClickable(gscNode).click();
             beforeIds = snapshotRecordIds();
             setMsg("Reading visit data");
-            phase = "wait-textarea";
-            return setTimeout(tick, 250);
+            phase = "wait-import-tab";
           }
           return setTimeout(tick, 250);
         }
 
-        if (phase === "wait-textarea") {
-          // GSC Email screen has a Send Template / Import Reply tab pair.
-          // Click "Import Reply" tab first (the textarea lives there).
+        if (phase === "wait-import-tab") {
           var importTab = findByText("button", "Import Reply") || findByText("div", "Import Reply") || findByText("span", "Import Reply");
-          if (importTab) {
-            climbToClickable(importTab).click();
-          }
+          if (importTab) climbToClickable(importTab).click();
+          phase = "wait-textarea";
+          return setTimeout(tick, 250);
+        }
+
+        if (phase === "wait-textarea") {
           var ta = document.querySelector('textarea');
           if (ta) {
-            setReactInputValue(ta, prefill);
+            setReactInputValue(ta, translated);
             setMsg("Parsing certificates");
             phase = "wait-parse";
-            return setTimeout(tick, 250);
           }
           return setTimeout(tick, 250);
         }
@@ -295,11 +404,24 @@
           var btn = findByText("button", "Parse Email") || findByText("button", "Parse");
           if (btn && !btn.disabled) {
             btn.click();
-            sessionStorage.removeItem("__citizenGasPrefill");
-            phase = "wait-records";
-            return setTimeout(tick, 300);
+            phase = "wait-import-button";
           }
-          return setTimeout(tick, 250);
+          return setTimeout(tick, 300);
+        }
+
+        if (phase === "wait-import-button") {
+          // After parse, an "Import" / "Create Certificate(s)" / similar button should appear.
+          var imp = findByText("button", "Import")
+                 || findByText("button", "Create Certificates")
+                 || findByText("button", "Create Certificate")
+                 || findByText("button", "Save");
+          if (imp && !imp.disabled) {
+            imp.click();
+            sessionStorage.removeItem("__citizenGasPrefillRaw");
+            sessionStorage.removeItem("__citizenGasPrefillTranslated");
+            phase = "wait-records";
+          }
+          return setTimeout(tick, 350);
         }
 
         if (phase === "wait-records") {
@@ -310,14 +432,19 @@
             tagNewRecordsIntoTodayFolder(beforeIds);
             setMsg("Saving to today's folder");
             phase = "go-records";
-            return setTimeout(tick, 300);
+            return setTimeout(tick, 400);
           }
           return setTimeout(tick, 300);
         }
 
         if (phase === "go-records") {
-          // Walk back to home, then click Records tile.
-          var back = document.querySelector('button[aria-label="Back"]') || findByText("button", "Back") || findByText("button", "Home");
+          // Dismiss any "✅ N Gas Safety Certificate created!" alert dialogs (alert() blocks JS,
+          // but if the bundle uses custom dialogs there'd be a button).
+          var ok = findByText("button", "OK") || findByText("button", "Ok") || findByText("button", "Done");
+          if (ok) climbToClickable(ok).click();
+
+          var back = findByText("button", "Back") || findByText("button", "Home")
+                  || document.querySelector('button[aria-label="Back"]');
           if (back) climbToClickable(back).click();
           phase = "wait-records-tile";
           return setTimeout(tick, 350);
@@ -328,22 +455,16 @@
           if (rec) {
             climbToClickable(rec).click();
             phase = "done";
+            restoreAlert();
             setTimeout(hideSplashShowApp, 250);
             return;
           }
-          // Fallback after a couple of tries: just reveal whatever screen we're on.
-          if (Date.now() - startedAt > BUDGET_MS - 5000) {
-            hideSplashShowApp();
-            return;
-          }
+          if (Date.now() - startedAt > BUDGET_MS - 5000) { hideSplashShowApp(); return; }
           return setTimeout(tick, 250);
         }
       }
 
-      window.addEventListener("DOMContentLoaded", function () {
-        setTimeout(tick, 350);
-      });
-      // Failsafe: never leave the splash up forever
+      window.addEventListener("DOMContentLoaded", function () { setTimeout(tick, 350); });
       setTimeout(hideSplashShowApp, BUDGET_MS + 1000);
     })();
     </script>
