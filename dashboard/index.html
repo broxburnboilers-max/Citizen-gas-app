@@ -3,20 +3,137 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#2a52d4" />
+    <meta name="theme-color" content="#18252D" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>Gas Safety – West Lothian Gas Ltd</title>
+    <title>Citizen Gas — Records</title>
+
+    <!-- Citizen Gas theme overlay (no bundle changes) -->
+    <style>
+      :root {
+        --cg-bg: #18252D;
+        --cg-bg-2: #0f1a20;
+        --cg-card: #1f2f38;
+        --cg-card-border: #2a3d47;
+        --cg-text: #f5f5f5;
+        --cg-muted: #b8c2c8;
+        --cg-primary: #F2682A;
+        --cg-primary-2: #d94e83;
+      }
+      html, body { background: var(--cg-bg) !important; color: var(--cg-text); margin: 0; min-height: 100%; }
+      body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+      /* Recolor the dashboard's blue header → Citizen Gas dark */
+      div[style*="background"][style*="#2a52d4"],
+      div[style*="background:#2a52d4"],
+      div[style*="background: #2a52d4"],
+      header,
+      [style*="linear-gradient"][style*="#2a52d4"] {
+        background: var(--cg-bg) !important;
+        background-image: none !important;
+        border-bottom: 1px solid var(--cg-card-border) !important;
+      }
+
+      /* Recolor white cards to dark cards */
+      #root > div { background: var(--cg-bg) !important; }
+      #root [style*="background:#fff"]:not(textarea):not(input):not(select),
+      #root [style*="background: #fff"]:not(textarea):not(input):not(select),
+      #root [style*="background:#ffffff"]:not(textarea):not(input):not(select),
+      #root [style*="background:white"]:not(textarea):not(input):not(select),
+      #root [style*="background-color:#fff"]:not(textarea):not(input):not(select),
+      #root [style*="background-color: #fff"]:not(textarea):not(input):not(select),
+      #root [style*="background-color:#ffffff"]:not(textarea):not(input):not(select) {
+        background: var(--cg-card) !important;
+        color: var(--cg-text) !important;
+        border-color: var(--cg-card-border) !important;
+      }
+
+      /* Tile circles */
+      #root [style*="border-radius: 50%"][style*="border"],
+      #root [style*="borderRadius:50%"] {
+        border-color: var(--cg-primary) !important;
+      }
+
+      /* Primary action buttons (blue) -> orange */
+      #root button[style*="#2a52d4"],
+      #root button[style*="#1a3a8f"],
+      #root button[style*="#1a3bbf"] {
+        background: var(--cg-primary) !important;
+        color: #fff !important;
+        border-color: var(--cg-primary) !important;
+      }
+
+      /* Generic dark text against newly-dark cards */
+      #root [style*="color:#111"],
+      #root [style*="color: #111"],
+      #root [style*="color:#222"],
+      #root [style*="color: #222"],
+      #root [style*="color:#333"],
+      #root [style*="color: #333"],
+      #root [style*="color:#444"],
+      #root [style*="color: #444"],
+      #root [style*="color:#555"],
+      #root [style*="color: #555"],
+      #root [style*="color:#666"],
+      #root [style*="color: #666"] {
+        color: var(--cg-text) !important;
+      }
+
+      /* Form fields stay light for readability of monospace input */
+      #root textarea, #root input[type="text"], #root input[type="password"], #root input:not([type]) {
+        background: #0e1a20 !important;
+        color: var(--cg-text) !important;
+        border-color: var(--cg-card-border) !important;
+      }
+
+      /* Splash overlay shown while parser runs */
+      #cg-splash {
+        position: fixed; inset: 0; z-index: 99999;
+        background: var(--cg-bg);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        color: var(--cg-text);
+        transition: opacity .35s ease;
+      }
+      #cg-splash.hide { opacity: 0; pointer-events: none; }
+      #cg-splash .ring {
+        width: 48px; height: 48px; border-radius: 50%;
+        border: 3px solid rgba(242,104,42,0.22);
+        border-top-color: var(--cg-primary);
+        animation: cg-spin 0.9s linear infinite;
+        margin-bottom: 18px;
+      }
+      #cg-splash .msg { font-size: 15px; color: var(--cg-muted); letter-spacing: .3px; }
+      #cg-splash .title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+      @keyframes cg-spin { to { transform: rotate(360deg); } }
+
+      /* Hide the GSC Email screen UI while we drive it programmatically */
+      body.cg-stealth #root { opacity: 0; pointer-events: none; }
+    </style>
+
     <script type="module" crossorigin src="./assets/index-99y8mxxr.js"></script>
   </head>
-  <body>
+  <body class="cg-stealth">
     <div id="root"></div>
 
-    <!-- Citizen Gas -> Dashboard auto-import adapter
-         (Outside the React bundle. Does not modify parser, layout, or auto-populate.) -->
+    <div id="cg-splash">
+      <div class="ring"></div>
+      <div class="title">Creating certificates…</div>
+      <div class="msg" id="cg-msg">Parsing your visit data</div>
+    </div>
+
+    <!-- Citizen Gas -> Dashboard auto-import adapter -->
     <script>
     (function () {
+      var splash = document.getElementById("cg-splash");
+      var msg    = document.getElementById("cg-msg");
+      function setMsg(t) { if (msg) msg.textContent = t; }
+      function hideSplashShowApp() {
+        document.body.classList.remove("cg-stealth");
+        if (splash) { splash.classList.add("hide"); setTimeout(function(){ splash.remove(); }, 400); }
+      }
+
       // 1) Capture ?prefill from URL once, stash for later, clean URL.
+      var hasPrefill = false;
       try {
         var u = new URL(window.location.href);
         var pre = u.searchParams.get("prefill");
@@ -26,14 +143,22 @@
           catch (e) { try { raw = decodeURIComponent(pre); } catch (e2) { raw = pre; } }
           if (raw && raw.trim()) {
             sessionStorage.setItem("__citizenGasPrefill", raw);
-            sessionStorage.setItem("__citizenGasPrefillStamp", String(Date.now()));
+            hasPrefill = true;
           }
           u.searchParams.delete("prefill");
           history.replaceState(null, "", u.pathname + (u.search || "") + (u.hash || ""));
+        } else if (sessionStorage.getItem("__citizenGasPrefill")) {
+          hasPrefill = true;
         }
       } catch (e) { console.error("prefill capture failed", e); }
 
-      // Helpers ----------------------------------------------------------------
+      // If no prefill is in flight, just show app normally — no stealth, no splash.
+      if (!hasPrefill) {
+        hideSplashShowApp();
+        return;
+      }
+
+      // Helpers --------------------------------------------------------------
       function setReactInputValue(el, value) {
         var proto = el.tagName === "TEXTAREA"
           ? window.HTMLTextAreaElement.prototype
@@ -43,23 +168,43 @@
         el.dispatchEvent(new Event("input", { bubbles: true }));
         el.dispatchEvent(new Event("change", { bubbles: true }));
       }
-
       function findByText(tag, text) {
         var nodes = document.querySelectorAll(tag);
         for (var i = 0; i < nodes.length; i++) {
           var t = (nodes[i].textContent || "").trim();
-          if (t === text || t.indexOf(text) >= 0) return nodes[i];
+          if (t === text) return nodes[i];
+        }
+        for (var j = 0; j < nodes.length; j++) {
+          var t2 = (nodes[j].textContent || "").trim();
+          if (t2.indexOf(text) >= 0) return nodes[j];
         }
         return null;
       }
-
+      function climbToClickable(el) {
+        var c = el;
+        for (var i = 0; i < 6 && c; i++) {
+          if (c.tagName === "BUTTON" || c.onclick || (c.getAttribute && c.getAttribute("role") === "button")) return c;
+          c = c.parentElement;
+        }
+        return el;
+      }
       function todayFolderName() {
         var d = new Date();
         var dd = String(d.getDate()).padStart(2, "0");
         var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
         return dd + " " + months[d.getMonth()] + " " + d.getFullYear();
       }
-
+      function snapshotRecordIds() {
+        try {
+          var arr = JSON.parse(localStorage.getItem("gsc_records") || "[]");
+          var ids = {};
+          arr.forEach(function (r) {
+            var key = (r.savedAt || r.id || JSON.stringify(r).slice(0, 80));
+            ids[key] = true;
+          });
+          return ids;
+        } catch (e) { return {}; }
+      }
       function tagNewRecordsIntoTodayFolder(beforeIds) {
         try {
           var records = JSON.parse(localStorage.getItem("gsc_records") || "[]");
@@ -67,75 +212,81 @@
           var name = todayFolderName();
           var existing = folders.find(function (f) { return f && f.name === name; });
           var folderId;
-          if (existing) {
-            folderId = existing.id;
-          } else {
+          if (existing) folderId = existing.id;
+          else {
             folderId = "f_" + Date.now();
             folders.push({ id: folderId, name: name });
             localStorage.setItem("gsc_folders", JSON.stringify(folders));
           }
           var changed = false;
           records.forEach(function (r) {
-            var key = (r.savedAt || r.id || JSON.stringify(r).slice(0, 60));
-            if (!beforeIds[key] && !r.gscFolder) {
-              r.gscFolder = folderId;
-              changed = true;
-            }
+            var key = (r.savedAt || r.id || JSON.stringify(r).slice(0, 80));
+            if (!beforeIds[key] && !r.gscFolder) { r.gscFolder = folderId; changed = true; }
           });
-          if (changed) {
-            localStorage.setItem("gsc_records", JSON.stringify(records));
-          }
-          console.log("[adapter] tagged new records into folder:", name, "id:", folderId);
+          if (changed) localStorage.setItem("gsc_records", JSON.stringify(records));
         } catch (e) { console.error("[adapter] folder tag failed", e); }
       }
 
-      function snapshotRecordIds() {
-        try {
-          var arr = JSON.parse(localStorage.getItem("gsc_records") || "[]");
-          var ids = {};
-          arr.forEach(function (r) {
-            var key = (r.savedAt || r.id || JSON.stringify(r).slice(0, 60));
-            ids[key] = true;
-          });
-          return ids;
-        } catch (e) { return {}; }
-      }
-
-      // Main flow --------------------------------------------------------------
-      var ATTEMPT_BUDGET_MS = 30000; // 30s
+      // Main flow ------------------------------------------------------------
+      var BUDGET_MS = 45000;
       var startedAt = Date.now();
-      var phase = "wait-home";
+      var phase = "wait-unlock"; // password screen first
       var beforeIds = null;
 
       function tick() {
-        if (Date.now() - startedAt > ATTEMPT_BUDGET_MS) return;
+        var elapsed = Date.now() - startedAt;
+        if (elapsed > BUDGET_MS) {
+          // Bail out — show whatever the app shows, drop the prefill so we don't loop
+          sessionStorage.removeItem("__citizenGasPrefill");
+          hideSplashShowApp();
+          return;
+        }
 
         var prefill = sessionStorage.getItem("__citizenGasPrefill");
-        if (!prefill) return;
+        if (!prefill) { hideSplashShowApp(); return; }
+
+        if (phase === "wait-unlock") {
+          // If a password input is on screen, wait — user must type password.
+          var pwd = document.querySelector('input[type="password"]');
+          if (pwd) {
+            // Show the unlock screen (drop stealth) so user can type password
+            document.body.classList.remove("cg-stealth");
+            setMsg("Enter your password to continue");
+            return setTimeout(tick, 300);
+          }
+          // No password on screen — past the gate. Re-enable stealth for the next jumps.
+          document.body.classList.add("cg-stealth");
+          setMsg("Opening certificate parser");
+          phase = "wait-home";
+          return setTimeout(tick, 200);
+        }
 
         if (phase === "wait-home") {
-          var gscTile = findByText("button", "GSC Email") || findByText("div", "GSC Email");
-          if (gscTile) {
-            // Climb to clickable ancestor
-            var clickTarget = gscTile;
-            for (var i = 0; i < 5; i++) {
-              if (clickTarget && (clickTarget.onclick || clickTarget.tagName === "BUTTON")) break;
-              clickTarget = clickTarget && clickTarget.parentElement;
-            }
-            (clickTarget || gscTile).click();
-            phase = "wait-textarea";
+          // Click GSC Email tile on home dashboard
+          var gscNode = findByText("div", "GSC Email") || findByText("button", "GSC Email") || findByText("span", "GSC Email");
+          if (gscNode) {
+            climbToClickable(gscNode).click();
             beforeIds = snapshotRecordIds();
-            console.log("[adapter] clicked GSC Email tile");
+            setMsg("Reading visit data");
+            phase = "wait-textarea";
+            return setTimeout(tick, 250);
           }
           return setTimeout(tick, 250);
         }
 
         if (phase === "wait-textarea") {
-          var ta = document.querySelector('textarea[placeholder*="Paste"], textarea');
+          // GSC Email screen has a Send Template / Import Reply tab pair.
+          // Click "Import Reply" tab first (the textarea lives there).
+          var importTab = findByText("button", "Import Reply") || findByText("div", "Import Reply") || findByText("span", "Import Reply");
+          if (importTab) {
+            climbToClickable(importTab).click();
+          }
+          var ta = document.querySelector('textarea');
           if (ta) {
             setReactInputValue(ta, prefill);
-            console.log("[adapter] filled textarea (" + prefill.length + " chars)");
+            setMsg("Parsing certificates");
             phase = "wait-parse";
+            return setTimeout(tick, 250);
           }
           return setTimeout(tick, 250);
         }
@@ -144,31 +295,56 @@
           var btn = findByText("button", "Parse Email") || findByText("button", "Parse");
           if (btn && !btn.disabled) {
             btn.click();
-            console.log("[adapter] clicked Parse Email");
-            phase = "wait-records";
             sessionStorage.removeItem("__citizenGasPrefill");
+            phase = "wait-records";
+            return setTimeout(tick, 300);
           }
           return setTimeout(tick, 250);
         }
 
         if (phase === "wait-records") {
-          // Wait for parser to actually write to localStorage, then tag.
           var afterIds = snapshotRecordIds();
           var added = false;
           for (var k in afterIds) { if (!beforeIds[k]) { added = true; break; } }
           if (added) {
             tagNewRecordsIntoTodayFolder(beforeIds);
-            phase = "done";
-            return;
+            setMsg("Saving to today's folder");
+            phase = "go-records";
+            return setTimeout(tick, 300);
           }
           return setTimeout(tick, 300);
         }
+
+        if (phase === "go-records") {
+          // Walk back to home, then click Records tile.
+          var back = document.querySelector('button[aria-label="Back"]') || findByText("button", "Back") || findByText("button", "Home");
+          if (back) climbToClickable(back).click();
+          phase = "wait-records-tile";
+          return setTimeout(tick, 350);
+        }
+
+        if (phase === "wait-records-tile") {
+          var rec = findByText("div", "Records") || findByText("button", "Records") || findByText("span", "Records");
+          if (rec) {
+            climbToClickable(rec).click();
+            phase = "done";
+            setTimeout(hideSplashShowApp, 250);
+            return;
+          }
+          // Fallback after a couple of tries: just reveal whatever screen we're on.
+          if (Date.now() - startedAt > BUDGET_MS - 5000) {
+            hideSplashShowApp();
+            return;
+          }
+          return setTimeout(tick, 250);
+        }
       }
 
-      // Start polling once DOM is ready and bundle has had a moment to mount.
       window.addEventListener("DOMContentLoaded", function () {
-        setTimeout(tick, 500);
+        setTimeout(tick, 350);
       });
+      // Failsafe: never leave the splash up forever
+      setTimeout(hideSplashShowApp, BUDGET_MS + 1000);
     })();
     </script>
   </body>
