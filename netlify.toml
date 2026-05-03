@@ -1,0 +1,9 @@
+[build]
+  command = ""
+  publish = "."
+
+# SPA fallback — serve index.html for any unknown route (works alongside hash routing)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
