@@ -527,15 +527,29 @@
         el.dispatchEvent(new Event("change", { bubbles: true }));
       }
       function findByText(tag, text) {
+        // Prefer the smallest (leaf-most) matching element so we don't grab outer wrappers.
         var nodes = document.querySelectorAll(tag);
+        var needle = (text || "").trim();
+        var needleLower = needle.toLowerCase();
+        var exact = [], sub = [];
         for (var i = 0; i < nodes.length; i++) {
-          var t = (nodes[i].textContent || "").trim();
-          if (t === text) return nodes[i];
+          var n = nodes[i];
+          // Skip invisible nodes
+          try {
+            var rect = n.getBoundingClientRect && n.getBoundingClientRect();
+            if (rect && rect.width === 0 && rect.height === 0) continue;
+          } catch (e) {}
+          var t = ((n.textContent || "") + "").trim();
+          if (!t) continue;
+          var tLower = t.toLowerCase();
+          if (tLower === needleLower) exact.push(n);
+          else if (tLower.indexOf(needleLower) >= 0) sub.push(n);
         }
-        for (var j = 0; j < nodes.length; j++) {
-          var t2 = (nodes[j].textContent || "").trim();
-          if (t2.indexOf(text) >= 0) return nodes[j];
+        function byShortest(a, b) {
+          return (a.textContent || "").length - (b.textContent || "").length;
         }
+        if (exact.length) { exact.sort(byShortest); return exact[0]; }
+        if (sub.length) { sub.sort(byShortest); return sub[0]; }
         return null;
       }
       function climbToClickable(el) {
